@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScholarPulse · 学术脉搏</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F5F4F1;--surface:#FFFFFF;--surface-alt:#F9F8F6;--border:#E3DFD8;--border-light:#EDEBE6;
+  --text:#1C1B18;--text-2:#55524A;--text-3:#9A968D;
+  --accent:#2B5E48;--accent-light:#E5EFEA;--accent-hover:#367A5C;
+  --star:#C9952E;--danger:#A8423F;
+  --topic-bg:#EDE8F5;--topic-text:#5B4A8A;
+  --font-d:'Newsreader',Georgia,'Songti SC',serif;
+  --font-b:'DM Sans','PingFang SC',-apple-system,sans-serif;
+  --r:8px;--shadow:0 1px 4px rgba(0,0,0,.05);--shadow-md:0 4px 16px rgba(0,0,0,.07);
+  --sidebar-w:270px;
+  --fs:14px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-b);color:var(--text);background:var(--bg);line-height:1.6;min-height:100vh;font-size:var(--fs)}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+button{font-family:var(--font-b);cursor:pointer}
+input,select{font-family:var(--font-b)}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;position:sticky;top:0;z-index:100}
+.header-inner{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;padding:12px 0;flex-wrap:wrap;gap:10px}
+.logo{font-family:var(--font-d);font-size:1.7em;font-weight:600;color:var(--accent);letter-spacing:-.03em}
+.tagline{font-family:var(--font-d);font-size:.82em;font-style:italic;color:var(--text-3);margin-top:1px}
+.progress-wrap{max-width:1200px;margin:0 auto;padding-bottom:6px}
+.progress-track{height:3px;background:var(--border-light);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;width:0%;background:var(--accent);border-radius:2px;transition:width .3s ease}
+.progress-text{font-size:.82em;color:var(--text-3);margin-top:3px}
+
+.tabs-bar{background:var(--surface);border-bottom:1px solid var(--border)}
+.tabs{display:flex;gap:0;max-width:1200px;margin:0 auto;padding:0 24px}
+.tab{display:flex;align-items:center;gap:5px;padding:9px 15px;background:none;border:none;border-bottom:2.5px solid transparent;color:var(--text-3);font-size:.95em;font-weight:500;transition:all .15s}
+.tab:hover{color:var(--text-2)}.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.badge{background:var(--accent-light);color:var(--accent);font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px}
+
+.layout{max-width:1200px;margin:0 auto;display:flex;gap:0;min-height:calc(100vh - 110px)}
+.sidebar{width:var(--sidebar-w);flex-shrink:0;border-right:1px solid var(--border);background:var(--surface);padding:14px 14px 40px;overflow-y:auto;position:sticky;top:88px;height:calc(100vh - 88px)}
+.content{flex:1;padding:16px 20px 80px;min-width:0}
+.tab-content{display:none}.tab-content.active{display:block;animation:fadeUp .2s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* Sidebar */
+.sb-section{margin-bottom:14px}
+.sb-label{font-size:.78em;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:5px;display:flex;justify-content:space-between;align-items:center}
+.sb-label button{font-size:10px;color:var(--accent);background:none;border:none;cursor:pointer}
+.sb-search{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r);font-size:.92em;outline:none;background:var(--surface-alt);transition:border-color .15s}
+.sb-search:focus{border-color:var(--accent);background:var(--surface)}
+.sb-check-list{max-height:170px;overflow-y:auto;margin-top:3px}
+.sb-check-item{display:flex;align-items:center;gap:5px;padding:3px 0;font-size:.92em;color:var(--text-2);cursor:pointer}
+.sb-check-item:hover{background:var(--surface-alt)}
+.sb-check-item input{accent-color:var(--accent)}
+.sb-check-item .count{margin-left:auto;font-size:.78em;color:var(--text-3);min-width:18px;text-align:right}
+.sb-divider{height:1px;background:var(--border-light);margin:12px 0}
+.sb-searchable{position:relative;margin-bottom:3px}
+.sb-searchable input{width:100%;padding:5px 8px 5px 24px;border:1px solid var(--border);border-radius:5px;font-size:.85em;outline:none;background:var(--surface-alt)}
+.sb-searchable input:focus{border-color:var(--accent);background:var(--surface)}
+.sb-searchable svg{position:absolute;left:6px;top:50%;transform:translateY(-50%);color:var(--text-3)}
+
+/* Toolbar */
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 12px;background:var(--surface);border:1px solid var(--border-light);border-radius:var(--r);margin-bottom:12px}
+.toolbar select,.toolbar button{font-size:.92em;padding:5px 8px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text-2)}
+.toolbar select{cursor:pointer}
+.toolbar .sep{width:1px;height:20px;background:var(--border-light);margin:0 2px}
+.toolbar label{display:flex;align-items:center;gap:4px;font-size:.92em;color:var(--text-2);cursor:pointer;white-space:nowrap}
+.toolbar label input{accent-color:var(--accent)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:.92em;font-weight:500;transition:all .15s;white-space:nowrap}
+.btn:hover{border-color:var(--text-3)}
+.btn-sm{padding:5px 9px;font-size:.85em}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}.btn-primary:hover{background:var(--accent-hover)}.btn-primary:disabled{opacity:.5;cursor:default}
+.btn-outline{background:transparent;color:var(--accent);border-color:var(--accent)}.btn-outline:hover{background:var(--accent-light)}
+.btn-ghost{background:none;border:none;padding:3px;color:var(--text-3);display:flex;align-items:center;border-radius:4px;transition:color .15s}.btn-ghost:hover{color:var(--text)}
+.btn-danger{color:var(--danger)}.btn-danger:hover{color:#fff;background:var(--danger)}
+.icon{width:14px;height:14px;vertical-align:middle;flex-shrink:0}
+
+/* Work cards */
+.result-count{font-size:.92em;color:var(--text-3);margin-bottom:8px}
+.work-card{background:var(--surface);border:1px solid var(--border-light);border-radius:var(--r);padding:12px 16px;margin-bottom:7px;cursor:pointer;transition:border-color .15s,box-shadow .15s;border-left:3px solid var(--accent)}
+.work-card:hover{border-color:var(--border);box-shadow:var(--shadow)}
+.work-card.read{opacity:.5;border-left-color:var(--border)}
+.work-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;gap:6px}
+.work-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.work-source{font-size:.78em;font-weight:600;color:var(--accent);background:var(--accent-light);padding:1px 6px;border-radius:4px}
+.work-date,.work-cited{font-size:.78em;color:var(--text-3)}
+.work-actions{display:flex;gap:1px;flex-shrink:0}
+.work-title{font-family:var(--font-d);font-size:1.14em;font-weight:600;line-height:1.4;color:var(--text);margin-bottom:2px}
+.work-authors{font-size:.92em;color:var(--text-2)}
+.work-topics{display:flex;flex-wrap:wrap;gap:3px;margin-top:5px}
+.work-topic{font-size:.78em;padding:2px 7px;border-radius:10px;background:var(--topic-bg);color:var(--topic-text);font-weight:500;cursor:pointer;transition:all .12s}
+.work-topic:hover{filter:brightness(.9)}
+.work-expanded{margin-top:8px;padding-top:8px;border-top:1px solid var(--border-light);animation:fadeUp .15s ease}
+.work-abstract{font-size:.95em;line-height:1.7;color:var(--text-2);margin-bottom:6px}
+.work-links{display:flex;gap:12px;flex-wrap:wrap}
+.work-links a{font-size:.85em;color:var(--accent);display:inline-flex;align-items:center;gap:3px;font-weight:500}
+.star-active{color:var(--star)!important}.check-active{color:var(--accent)!important}
+
+/* Section header — unified style */
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--border-light)}
+.section-title{font-family:var(--font-d);font-size:1.3em;font-weight:600;color:var(--text)}
+.section-subtitle{font-size:.85em;color:var(--text-3);margin-left:8px;font-weight:400}
+
+/* Groups */
+.group{background:var(--surface);border:1px solid var(--border-light);border-radius:var(--r);margin-bottom:12px;overflow:hidden;transition:box-shadow .15s}
+.group.group-dragging{opacity:.5;box-shadow:var(--shadow-md)}
+.group.group-drag-over-top{border-top:3px solid var(--accent)}
+.group.group-drag-over-bottom{border-bottom:3px solid var(--accent)}
+.group-header{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface-alt);border-bottom:1px solid var(--border-light);cursor:grab;gap:8px}
+.group-header:hover{background:var(--border-light)}
+.group-name{font-weight:600;font-size:1.05em;border:none;background:transparent;outline:none;font-family:var(--font-b);color:var(--text);width:auto;min-width:120px;max-width:100%;flex:1}
+.group-name:focus{border-bottom:1.5px solid var(--accent)}
+.group-actions{display:flex;gap:4px;align-items:center;flex-shrink:0}
+.group-body{padding:8px 10px;min-height:32px}
+.group-body.drag-over{background:var(--accent-light)}
+.entity-item{display:flex;justify-content:space-between;align-items:center;padding:7px 8px;border-radius:5px;margin-bottom:3px;cursor:pointer;transition:background .1s;border:1px solid transparent;position:relative}
+.entity-item:hover{background:var(--surface-alt)}
+.entity-item.dragging{opacity:.4;border:1px dashed var(--accent)}
+.entity-item.item-drag-over-top{border-top:2px solid var(--accent)}
+.entity-item.item-drag-over-bottom{border-bottom:2px solid var(--accent)}
+.entity-item .name{font-weight:500;font-size:1em}.entity-item .meta{font-size:.85em;color:var(--text-3)}
+.group-empty{font-size:11px;color:var(--text-3);padding:6px 4px;font-style:italic}
+.entity-works-list{padding:4px 8px 8px;border-top:1px solid var(--border-light);background:var(--surface-alt);animation:fadeUp .15s ease}
+.entity-work-item{font-size:.88em;padding:4px 6px;border-radius:4px;color:var(--text-2);cursor:pointer;display:flex;justify-content:space-between;gap:8px}
+.entity-work-item:hover{background:var(--border-light)}
+.entity-work-item .ew-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.entity-work-item .ew-date{font-size:.82em;color:var(--text-3);flex-shrink:0}
+
+/* Add panel */
+.add-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-bottom:14px;box-shadow:var(--shadow-md)}
+.add-panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.add-panel-title{font-size:.95em;font-weight:600}
+.add-search-row{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+.add-search-row input{flex:1;min-width:150px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--r);font-size:.95em;outline:none}
+.add-search-row input:focus{border-color:var(--accent)}
+.add-results{max-height:260px;overflow-y:auto;border-top:1px solid var(--border-light);padding-top:4px}
+.add-result{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border-light);gap:8px}
+.add-result-name{font-weight:600;font-size:1em}
+.add-result-meta{font-size:.82em;color:var(--text-3)}
+.add-result-orcid{font-size:.75em;font-weight:400;color:var(--accent);margin-left:5px}
+.add-result-topics{font-size:.82em;color:var(--text-2);margin-top:1px;font-style:italic}
+.add-result-topwork{font-size:.82em;color:var(--text-3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:420px}
+.source-toggle{display:flex;gap:0;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;flex-shrink:0}
+.source-toggle button{padding:5px 10px;border:none;background:var(--surface);font-size:11px;font-weight:500;color:var(--text-3);transition:all .12s}
+.source-toggle button.active{background:var(--accent);color:#fff}
+
+/* Preset */
+.preset-section{background:var(--accent-light);border-radius:var(--r);padding:12px 14px;margin-bottom:12px}
+.preset-title{font-size:.85em;font-weight:500;color:var(--accent);margin-bottom:6px}
+.preset-list{display:flex;flex-wrap:wrap;gap:5px}
+.preset-chip{display:inline-flex;align-items:center;gap:3px;padding:5px 11px;border-radius:16px;border:1px solid var(--accent);background:var(--surface);color:var(--accent);font-size:.88em;font-weight:500;transition:all .15s}
+.preset-chip:hover{background:var(--accent);color:#fff}
+
+/* Pagination */
+.pagination{display:flex;justify-content:center;align-items:center;gap:6px;padding:16px 0;flex-wrap:wrap}
+.pagination button{padding:5px 12px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text-2);font-size:.88em;transition:all .12s}
+.pagination button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.pagination button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pagination button:disabled{opacity:.4;cursor:default}
+.pagination .page-info{font-size:.85em;color:var(--text-3)}
+
+.empty{text-align:center;padding:40px 16px}
+.empty-icon{font-size:36px;margin-bottom:8px}
+.empty-title{font-family:var(--font-d);font-size:1.25em;font-weight:600;margin-bottom:5px}
+.empty-desc{font-size:.92em;color:var(--text-3);max-width:340px;margin:0 auto}
+.footer{text-align:center;padding:14px 24px;font-size:.78em;color:var(--text-3);border-top:1px solid var(--border-light)}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:8px 16px;border-radius:8px;font-size:.85em;z-index:999;animation:toastIn .3s ease;box-shadow:var(--shadow-md)}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.sidebar-toggle{display:none;position:fixed;bottom:18px;right:18px;z-index:200;width:40px;height:40px;border-radius:50%;background:var(--accent);color:#fff;border:none;box-shadow:var(--shadow-md);align-items:center;justify-content:center}
+@media(max-width:800px){
+  .sidebar{position:fixed;left:-300px;top:0;height:100vh;z-index:300;transition:left .25s;padding-top:56px;box-shadow:var(--shadow-md)}
+  .sidebar.open{left:0}.sidebar-toggle{display:flex}
+  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:250}.sidebar-overlay.open{display:block}
+  .content{padding:12px 12px 60px}
+}
+/* Manual add form */
+.manual-add-form{margin-top:8px;padding:10px;background:var(--surface-alt);border:1px solid var(--border-light);border-radius:var(--r)}
+.manual-add-form input{width:100%;padding:6px 9px;border:1px solid var(--border);border-radius:5px;font-size:.92em;outline:none;margin-bottom:6px}
+.manual-add-form input:focus{border-color:var(--accent)}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <div><div class="logo">ScholarPulse</div><div class="tagline">学术脉搏 · 追踪你关注的学者与期刊</div></div>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:2px;border:1px solid var(--border);border-radius:var(--r);padding:2px 4px">
+        <button class="btn-ghost" onclick="changeFontSize(-1)" style="font-size:12px;padding:2px 4px" title="Smaller">A-</button>
+        <span id="fsDisplay" style="font-size:11px;color:var(--text-3);min-width:32px;text-align:center">14px</span>
+        <button class="btn-ghost" onclick="changeFontSize(1)" style="font-size:14px;padding:2px 4px;font-weight:600" title="Larger">A+</button>
+      </div>
+      <button class="btn btn-sm" id="langToggleBtn" onclick="toggleLang()">EN</button>
+      <select class="btn btn-sm" id="yearRangeSelect" onchange="saveYearRange()" style="padding:4px 6px;font-size:.85em" title="Year range">
+        <option value="1">1年</option>
+        <option value="2" selected>2年</option>
+        <option value="3">3年</option>
+        <option value="5">5年</option>
+        <option value="10">10年</option>
+        <option value="15">15年</option>
+      </select>
+      <button class="btn btn-primary" id="refreshBtn" onclick="fetchAll()">↻ <span data-i="refresh">刷新数据</span></button>
+    </div>
+  </div>
+  <div class="progress-wrap" id="progressWrap" style="display:none"><div class="progress-track"><div class="progress-fill"></div></div><span class="progress-text" id="progressText"></span></div>
+</header>
+
+<div class="tabs-bar"><nav class="tabs">
+  <button class="tab active" data-tab="feed" onclick="switchTab('feed')">📄 <span data-i="feedTab">文献动态</span> <span class="badge" id="feedBadge" style="display:none">0</span></button>
+  <button class="tab" data-tab="scholars" onclick="switchTab('scholars')">👤 <span data-i="scholarsTab">关注学者</span> <span class="badge" id="scholarBadge" style="display:none">0</span></button>
+  <button class="tab" data-tab="journals" onclick="switchTab('journals')">📖 <span data-i="journalsTab">关注期刊</span> <span class="badge" id="journalBadge" style="display:none">0</span></button>
+  <button class="tab" data-tab="import" onclick="switchTab('import')">📥 <span data-i="importTab">导入</span></button>
+  <button class="tab" data-tab="settings" onclick="switchTab('settings')">⚙ <span data-i="settingsTab">设置</span></button>
+</nav></div>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-section">
+      <div class="sb-label" data-i-label="kwSearch">关键词搜索</div>
+      <input class="sb-search" id="searchInput" placeholder="标题、作者、摘要、DOI..." oninput="renderWorks()">
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-section">
+      <div class="sb-label"><span data-i-text="topicLabel">主题领域</span> <button onclick="clearTopicFilter()" data-i-text="clear">清除</button></div>
+      <div class="sb-searchable"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg><input id="topicSearchInput" placeholder="搜索主题..." oninput="renderTopicFilter()"></div>
+      <div class="sb-check-list" id="topicList"></div>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-section">
+      <div class="sb-label"><span data-i-text="journalFilterLabel">期刊筛选</span> <button onclick="clearJournalFilter()" data-i-text="clear">清除</button></div>
+      <div class="sb-searchable"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg><input id="journalFilterSearch" placeholder="搜索期刊..." oninput="renderJournalFilter()"></div>
+      <div class="sb-check-list" id="journalFilterList"></div>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-section">
+      <div class="sb-label"><span data-i-text="authorFilterLabel">作者筛选</span> <button onclick="clearAuthorFilter()" data-i-text="clear">清除</button></div>
+      <div class="sb-searchable"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg><input id="authorFilterSearch" placeholder="搜索作者..." oninput="renderAuthorFilter()"></div>
+      <div class="sb-check-list" id="authorFilterList"></div>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-section">
+      <div class="sb-label"><span data-i-text="groupFilterLabel">分组筛选</span> <button onclick="clearGroupFilter()" data-i-text="clear">清除</button></div>
+      <div class="sb-check-list" id="groupFilterList"></div>
+    </div>
+  </aside>
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+  <div class="content">
+    <div class="tab-content active" id="tab-feed"><div id="worksContainer"></div></div>
+    <div class="tab-content" id="tab-scholars">
+      <div class="section-header">
+        <div style="display:flex;align-items:baseline;gap:4px">
+          <h2 class="section-title" data-i-text="scholarTitle">关注的学者</h2>
+          <span class="section-subtitle" id="scholarCount"></span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-sm" onclick="addGroup('scholars')" data-i-text="newGroup">+ 新建分组</button>
+          <button class="btn btn-primary btn-sm" onclick="openAddPanel('scholar')" data-i-text="searchAdd">+ 搜索添加</button>
+        </div>
+      </div>
+      <div id="scholarAddPanel" style="display:none"></div>
+      <div id="scholarPresets"></div>
+      <div id="scholarGroups"></div>
+    </div>
+    <div class="tab-content" id="tab-journals">
+      <div class="section-header">
+        <div style="display:flex;align-items:baseline;gap:4px">
+          <h2 class="section-title" data-i-text="journalTitle">关注的期刊</h2>
+          <span class="section-subtitle" id="journalCount"></span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-sm" onclick="addGroup('journals')" data-i-text="newGroup">+ 新建分组</button>
+          <button class="btn btn-primary btn-sm" onclick="openAddPanel('journal')" data-i-text="searchAdd">+ 搜索添加</button>
+        </div>
+      </div>
+      <div id="journalAddPanel" style="display:none"></div>
+      <div id="journalPresets"></div>
+      <div id="journalGroups"></div>
+    </div>
+    <!-- Import -->
+    <div class="tab-content" id="tab-import">
+      <div class="section-header">
+        <div style="display:flex;align-items:baseline;gap:4px">
+          <h2 class="section-title" data-i-text="importTitle">导入文献</h2>
+        </div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px">
+        <p style="font-size:.92em;color:var(--text-2);margin-bottom:10px" id="importDesc"></p>
+        <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+          <div style="flex:1;min-width:150px">
+            <label style="font-size:.85em;font-weight:500" data-i-text="importSourceLabel">来源名称（可选）：</label>
+            <input id="importSourceName" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r);font-size:.92em;margin-top:4px;outline:none" placeholder="">
+          </div>
+          <div style="min-width:140px">
+            <label style="font-size:.85em;font-weight:500" data-i-text="importFormatLabel">格式：</label>
+            <select id="importFormat" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r);font-size:.92em;margin-top:4px">
+              <option value="auto">自动检测</option>
+              <option value="bibtex">BibTeX</option>
+              <option value="ris">RIS</option>
+              <option value="lines">逐行（标题 / 作者）</option>
+              <option value="csv">CSV / TSV</option>
+            </select>
+          </div>
+        </div>
+        <textarea id="importTextarea" style="width:100%;height:200px;padding:10px;border:1px solid var(--border);border-radius:var(--r);font-size:.88em;line-height:1.6;resize:vertical;outline:none;font-family:var(--font-b)" placeholder=""></textarea>
+        <div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="doImport()" data-i-text="importBtn">导入</button>
+          <button class="btn" onclick="document.getElementById('importFileUpload').click()" data-i-text="importFileBtn">📂 上传文件</button>
+          <input type="file" id="importFileUpload" accept=".bib,.ris,.csv,.tsv,.txt,.json" style="display:none" onchange="handleImportFile(event)">
+          <span id="importStatus" style="font-size:.85em;color:var(--text-3)"></span>
+        </div>
+      </div>
+    </div>
+    <!-- Settings -->
+    <div class="tab-content" id="tab-settings">
+      <div class="section-header">
+        <div style="display:flex;align-items:baseline;gap:4px">
+          <h2 class="section-title" data-i-text="settingsTitle">设置</h2>
+        </div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px">
+        <h3 style="font-size:1.05em;font-weight:600;margin-bottom:8px" data-i-text="proxyTitle">CNKI RSS 代理地址</h3>
+        <p style="font-size:.88em;color:var(--text-2);margin-bottom:10px;line-height:1.6" id="proxySettingDesc"></p>
+        <input id="proxyUrlInput" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--r);font-size:.92em;outline:none;font-family:monospace" placeholder="https://your-worker.your-name.workers.dev/?url=">
+        <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+          <button class="btn btn-primary" onclick="saveProxyUrl()" data-i-text="proxySave">保存</button>
+          <button class="btn" onclick="testProxy()" data-i-text="proxyTest">测试连接</button>
+          <span id="proxyStatus" style="font-size:.85em;color:var(--text-3)"></span>
+        </div>
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border-light)">
+          <details>
+            <summary style="font-size:.92em;font-weight:500;cursor:pointer;color:var(--accent)">📖 如何部署 Cloudflare Worker（5分钟教程）</summary>
+            <div style="font-size:.85em;color:var(--text-2);line-height:1.8;margin-top:8px">
+              <p><strong>Step 1:</strong> <a href="https://dash.cloudflare.com/sign-up" target="_blank">Sign up for Cloudflare</a> (free)</p>
+              <p><strong>Step 2:</strong> Go to <a href="https://dash.cloudflare.com/?to=/:account/workers-and-pages" target="_blank">Workers & Pages</a></p>
+              <p><strong>Step 3:</strong> Click <strong>Create → Create Worker</strong>, name it (e.g. <code>rss-proxy</code>), click Deploy</p>
+              <p><strong>Step 4:</strong> Click <strong>Edit Code</strong>, replace with:</p>
+              <pre style="background:var(--surface-alt);padding:10px;border-radius:var(--r);overflow-x:auto;font-size:.92em;margin:8px 0;border:1px solid var(--border-light)"><code>export default {
+  async fetch(request) {
+    const url = new URL(request.url);
+    const target = url.searchParams.get('url');
+    if (!target) return new Response('Missing url', {status:400});
+    const allowed = ['navi.cnki.net','nxgp.cnki.net','rss.cnki.net'];
+    try {
+      const t = new URL(target);
+      if (!allowed.some(d => t.hostname === d))
+        return new Response('Domain not allowed', {status:403});
+    } catch { return new Response('Invalid url', {status:400}); }
+    try {
+      const r = await fetch(target, {
+        headers: {'User-Agent':'Mozilla/5.0'}
+      });
+      const body = await r.text();
+      return new Response(body, {
+        headers: {
+          'Access-Control-Allow-Origin':'*',
+          'Content-Type': r.headers.get('Content-Type')||'text/xml',
+          'Cache-Control': 'public, max-age=3600'
+        }
+      });
+    } catch(e) {
+      return new Response('Fetch error: '+e.message, {status:502});
+    }
+  }
+}</code></pre>
+              <p><strong>Step 5:</strong> Click <strong>Deploy</strong></p>
+              <p><strong>Step 6:</strong> Copy your Worker URL and paste above as: <code>https://rss-proxy.yourname.workers.dev/?url=</code></p>
+            </div>
+          </details>
+        </div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px">
+        <h3 style="font-size:1.05em;font-weight:600;margin-bottom:8px" data-i-text="dataManagement">数据管理</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn" onclick="exportData()" data-i-text="exportBtn">📦 导出全部数据</button>
+          <button class="btn" onclick="document.getElementById('importFileInput').click()" data-i-text="importBackup">📂 导入数据备份</button>
+          <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importDataFile(event)">
+          <button class="btn btn-danger" onclick="clearAllData()" data-i-text="clearAll">🗑 清除全部数据</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+<footer class="footer">Data: <a href="https://openalex.org" target="_blank">OpenAlex</a> + <a href="https://navi.cnki.net/knavi/" target="_blank">CNKI RSS</a> · <span data-i-text="footerText">数据保存在浏览器本地</span></footer>
+<div id="toastContainer"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════
+let scholarGroups = JSON.parse(localStorage.getItem('sp3_sgroups')||'[{"name":"默认","items":[]}]');
+let journalGroups = JSON.parse(localStorage.getItem('sp3_jgroups')||'[{"name":"默认","items":[]}]');
+// Sanitize: remove null/undefined items that may have crept in from bugs
+scholarGroups.forEach(g=>{g.items=(g.items||[]).filter(i=>i&&i.name)});
+journalGroups.forEach(g=>{g.items=(g.items||[]).filter(i=>i&&i.name)});
+let works = JSON.parse(localStorage.getItem('sp3_works')||'[]');
+let readSet = new Set(JSON.parse(localStorage.getItem('sp3_read')||'[]'));
+let starSet = new Set(JSON.parse(localStorage.getItem('sp3_star')||'[]'));
+let expandedWork = null, isLoading = false;
+let selectedTopics = new Set(), selectedJournals = new Set(), selectedAuthors = new Set(), selectedGroups = new Set();
+let currentPage = 1, pageSize = parseInt(localStorage.getItem('sp3_pageSize'))||20;
+let expandedEntity = null;
+
+// ════════════════════════════════════════════════════════════════
+// I18N — COMPLETE
+// ════════════════════════════════════════════════════════════════
+let lang = localStorage.getItem('sp3_lang')||'zh';
+const I={
+  zh:{
+    refresh:'刷新数据',refreshing:'获取中...',
+    feedTab:'文献动态',scholarsTab:'关注学者',journalsTab:'关注期刊',importTab:'导入',settingsTab:'设置',
+    kwSearch:'关键词搜索',kwPlaceholder:'标题、作者、摘要、DOI...',
+    topicLabel:'主题领域',journalFilterLabel:'期刊筛选',authorFilterLabel:'作者筛选',groupFilterLabel:'分组筛选',
+    clear:'清除',searchTopic:'搜索主题...',searchJournal:'搜索期刊...',searchAuthor:'搜索作者...',
+    sortLabel:'排序',dateDesc:'最新优先',dateAsc:'最早优先',cited:'被引最多',titleSort:'标题排序',
+    langLabel:'语言',langAll:'全部',langZh:'中文',langEn:'英文',
+    showRead:'显示已读',starOnly:'仅星标',perPage:'每页',
+    total:'共',articles:'篇',
+    noData:'暂无数据',noMatch:'没有匹配的文献',adjustFilter:'调整左侧筛选条件或顶部工具栏。',
+    emptyTitle:'尚未获取任何文献',emptyDesc:'先在「关注学者」或「关注期刊」中添加对象，然后点击「刷新数据」。',
+    newGroup:'+ 新建分组',searchAdd:'+ 搜索添加',groupDefault:'默认',
+    sortAlpha:'A→Z',addToGroup:'添加到此分组',deleteGroup:'删除分组',
+    dragHint:'拖拽到此分组，或点击 + 添加',
+    confirmDelete:'确定删除分组「{name}」及其中的{n}个项目？',keepOne:'至少保留一个分组',
+    added:'已添加',add:'添加',searchLabel:'搜索',searching:'搜索中...',noResult:'未找到结果',
+    dataSource:'数据源：',cnkiHelp:'输入知网期刊代码（如 SHXJ＝社会学研究），可在知网出版物导航页找到代码。也可输入中文名搜索预设。',
+    scholarTitle:'关注的学者',journalTitle:'关注的期刊',
+    presetScholar:'快速添加：社会学 / 文化社会学学者',presetEnJournal:'英文社会学核心期刊',presetCnJournal:'中文社科核心期刊（CNKI RSS）',
+    noAbstract:'暂无摘要',topWork:'代表作',cited2:'被引',
+    fetchDone:'获取完成，共 {n} 篇文献',fetchErr:'获取出错: ',addFirst:'请先添加关注的学者或期刊',
+    scholar:'学者',journal:'期刊',searchScholar:'输入学者姓名...',searchJournal2:'输入期刊名称或代码...',
+    footerText:'数据保存在浏览器本地',
+    importTitle:'导入文献',importDesc:'支持多种格式导入文献：BibTeX (.bib)、RIS (.ris)、CSV/TSV、逐行文本（标题 / 作者1, 作者2）。可直接粘贴内容或上传文件。',
+    importSourceLabel:'来源名称（可选）：',importFormatLabel:'格式：',importBtn:'导入',importFileBtn:'📂 上传文件',
+    importSourcePlaceholder:'如：社会学研究、Google Scholar 等',
+    importPlaceholder:'粘贴文献数据...\n\n支持格式：\n• BibTeX（@article{...}）\n• RIS（TY  - JOUR ...）\n• CSV/TSV（title,author,year,...）\n• 逐行：标题 / 作者1, 作者2',
+    settingsTitle:'设置',proxyTitle:'CNKI RSS 代理地址',
+    proxyDesc:'知网 RSS 在浏览器中受 CORS 限制无法直接访问，需通过代理中转。部署 Cloudflare Worker 代理（免费），填入地址即可。',
+    proxySave:'保存',proxyTest:'测试连接',
+    dataManagement:'数据管理',exportBtn:'📦 导出全部数据',importBackup:'📂 导入数据备份',clearAll:'🗑 清除全部数据',clearConfirm:'确定清除所有数据？此操作不可恢复。',
+    yearRange:'年份范围',yr1:'1年',yr2:'2年',yr3:'3年',yr5:'5年',yr10:'10年',yr15:'15年',
+    manualAdd:'手动添加',manualAddName:'名称',manualAddId:'ID / ISSN（可选）',manualAddInst:'机构（可选）',
+    rename:'重命名',entityWorksCount:'{n} 篇相关文献',noEntityWorks:'暂无已存储的文献',
+    prev:'上一页',next:'下一页',page:'第{n}页',
+    formatAuto:'自动检测',formatBib:'BibTeX',formatRIS:'RIS',formatLines:'逐行',formatCSV:'CSV / TSV',
+    scholarsSuffix:'位学者',journalsSuffix:'本期刊',sourcesFailed:'个源失败',
+    confirmRemoveEntity:'确定移除「{name}」？',confirmRemoveGroup:'确定删除分组「{name}」及其中的 {n} 个项目？',
+    collapse:'收起',expand:'展开',
+  },
+  en:{
+    refresh:'Refresh',refreshing:'Loading...',
+    feedTab:'Feed',scholarsTab:'Scholars',journalsTab:'Journals',importTab:'Import',settingsTab:'Settings',
+    kwSearch:'Keyword Search',kwPlaceholder:'Title, author, abstract, DOI...',
+    topicLabel:'Topics',journalFilterLabel:'Journal Filter',authorFilterLabel:'Author Filter',groupFilterLabel:'Group Filter',
+    clear:'Clear',searchTopic:'Search topics...',searchJournal:'Search journals...',searchAuthor:'Search authors...',
+    sortLabel:'Sort',dateDesc:'Newest first',dateAsc:'Oldest first',cited:'Most cited',titleSort:'By title',
+    langLabel:'Language',langAll:'All',langZh:'Chinese',langEn:'English',
+    showRead:'Show read',starOnly:'Starred only',perPage:'Per page',
+    total:'Total',articles:'articles',
+    noData:'No data',noMatch:'No matching articles',adjustFilter:'Adjust sidebar filters or toolbar.',
+    emptyTitle:'No articles yet',emptyDesc:'Add scholars or journals first, then click "Refresh".',
+    newGroup:'+ New Group',searchAdd:'+ Search & Add',groupDefault:'Default',
+    sortAlpha:'A→Z',addToGroup:'Add to this group',deleteGroup:'Delete group',
+    dragHint:'Drag items here, or click + to add',
+    confirmDelete:'Delete group "{name}" with {n} items?',keepOne:'Must keep at least one group',
+    added:'Added',add:'Add',searchLabel:'Search',searching:'Searching...',noResult:'No results found',
+    dataSource:'Source:',cnkiHelp:'Enter CNKI journal code (e.g. SHXJ = Sociological Studies). Find codes on CNKI journal navigation page.',
+    scholarTitle:'Followed Scholars',journalTitle:'Followed Journals',
+    presetScholar:'Quick add: Sociology scholars',presetEnJournal:'Core English sociology journals',presetCnJournal:'Core Chinese social science journals (CNKI RSS)',
+    noAbstract:'No abstract available',topWork:'Top work',cited2:'Cited',
+    fetchDone:'Done. {n} articles total',fetchErr:'Fetch error: ',addFirst:'Add scholars or journals first',
+    scholar:'Scholar',journal:'Journal',searchScholar:'Enter scholar name...',searchJournal2:'Enter journal name or code...',
+    footerText:'Data saved locally in browser',
+    importTitle:'Import Articles',importDesc:'Import articles from various formats: BibTeX (.bib), RIS (.ris), CSV/TSV, or line-by-line text (Title / Author1, Author2). Paste content or upload a file.',
+    importSourceLabel:'Source name (optional):',importFormatLabel:'Format:',importBtn:'Import',importFileBtn:'📂 Upload File',
+    importSourcePlaceholder:'e.g. Google Scholar, Scopus, etc.',
+    importPlaceholder:'Paste article data...\n\nSupported formats:\n• BibTeX (@article{...})\n• RIS (TY  - JOUR ...)\n• CSV/TSV (title,author,year,...)\n• Line-by-line: Title / Author1, Author2',
+    settingsTitle:'Settings',proxyTitle:'CNKI RSS Proxy URL',
+    proxyDesc:'CNKI RSS cannot be accessed directly from browser due to CORS. Deploy a Cloudflare Worker proxy (free) and enter the URL below.',
+    proxySave:'Save',proxyTest:'Test Connection',
+    dataManagement:'Data Management',exportBtn:'📦 Export All Data',importBackup:'📂 Import Backup',clearAll:'🗑 Clear All Data',clearConfirm:'Clear all data? This cannot be undone.',
+    yearRange:'Year Range',yr1:'1 yr',yr2:'2 yrs',yr3:'3 yrs',yr5:'5 yrs',yr10:'10 yrs',yr15:'15 yrs',
+    manualAdd:'Manual Add',manualAddName:'Name',manualAddId:'ID / ISSN (optional)',manualAddInst:'Institution (optional)',
+    rename:'Rename',entityWorksCount:'{n} related articles',noEntityWorks:'No stored articles',
+    prev:'Prev',next:'Next',page:'Page {n}',
+    formatAuto:'Auto-detect',formatBib:'BibTeX',formatRIS:'RIS',formatLines:'Line-by-line',formatCSV:'CSV / TSV',
+    scholarsSuffix:' scholars',journalsSuffix:' journals',sourcesFailed:' sources failed',
+    confirmRemoveEntity:'Remove "{name}"?',confirmRemoveGroup:'Delete group "{name}" with {n} items?',
+    collapse:'Collapse',expand:'Expand',
+  }
+};
+function t(key){return I[lang][key]||I.zh[key]||key}
+
+function toggleLang(){
+  lang=lang==='zh'?'en':'zh';
+  localStorage.setItem('sp3_lang',lang);
+  document.getElementById('langToggleBtn').textContent=lang==='zh'?'EN':'中';
+  applyI18n();
+}
+
+function applyI18n(){
+  document.querySelector('.tagline').textContent=lang==='zh'?'学术脉搏 · 追踪你关注的学者与期刊':'Academic Pulse · Track scholars & journals you follow';
+  // data-i-text elements
+  document.querySelectorAll('[data-i-text]').forEach(el=>{
+    const key=el.getAttribute('data-i-text');
+    if(I[lang][key]) el.textContent=I[lang][key];
+  });
+  document.querySelectorAll('[data-i]').forEach(el=>{
+    const key=el.getAttribute('data-i');
+    if(I[lang][key]) el.textContent=I[lang][key];
+  });
+  // Placeholders
+  document.getElementById('searchInput').placeholder=t('kwPlaceholder');
+  document.getElementById('topicSearchInput').placeholder=t('searchTopic');
+  document.getElementById('journalFilterSearch').placeholder=t('searchJournal');
+  document.getElementById('authorFilterSearch').placeholder=t('searchAuthor');
+  document.getElementById('importSourceName').placeholder=t('importSourcePlaceholder');
+  document.getElementById('importTextarea').placeholder=t('importPlaceholder');
+  document.getElementById('importDesc').textContent=t('importDesc');
+  document.getElementById('proxySettingDesc').innerHTML=t('proxyDesc')+'<br>Format: <code>https://your-worker.your-name.workers.dev/?url=</code>';
+  // Year range select
+  const ys=document.getElementById('yearRangeSelect');
+  if(ys){const opts=ys.options;opts[0].text=t('yr1');opts[1].text=t('yr2');opts[2].text=t('yr3');opts[3].text=t('yr5');opts[4].text=t('yr10');opts[5].text=t('yr15')}
+  // Import format select
+  const fs=document.getElementById('importFormat');
+  if(fs){const opts=fs.options;opts[0].text=t('formatAuto');opts[1].text=t('formatBib');opts[2].text=t('formatRIS');opts[3].text=t('formatLines');opts[4].text=t('formatCSV')}
+  renderAll();renderScholarGroups();renderJournalGroups();
+}
+
+function allScholars(){ return scholarGroups.flatMap(g=>(g.items||[]).filter(Boolean)) }
+function allJournals(){ return journalGroups.flatMap(g=>(g.items||[]).filter(Boolean)) }
+function save(){
+  localStorage.setItem('sp3_sgroups',JSON.stringify(scholarGroups));
+  localStorage.setItem('sp3_jgroups',JSON.stringify(journalGroups));
+  localStorage.setItem('sp3_works',JSON.stringify(works));
+  localStorage.setItem('sp3_read',JSON.stringify([...readSet]));
+  localStorage.setItem('sp3_star',JSON.stringify([...starSet]));
+}
+
+// ════════════════════════════════════════════════════════════════
+// YEAR RANGE
+// ════════════════════════════════════════════════════════════════
+let yearRange = parseInt(localStorage.getItem('sp3_yearRange'))||2;
+function saveYearRange(){
+  yearRange=parseInt(document.getElementById('yearRangeSelect').value);
+  localStorage.setItem('sp3_yearRange',yearRange);
+}
+document.getElementById('yearRangeSelect').value=yearRange;
+
+// ════════════════════════════════════════════════════════════════
+// PRESETS
+// ════════════════════════════════════════════════════════════════
+const PRESET_SCHOLARS=[
+  {id:'https://openalex.org/A5006703857',name:'Paul DiMaggio',inst:'New York University',type:'openalex'},
+  {id:'https://openalex.org/A5058560108',name:'Andrei Boutyline',inst:'University of Michigan',type:'openalex'},
+  {id:'https://openalex.org/A5091701498',name:'Michèle Lamont',inst:'Harvard University',type:'openalex'},
+  {id:'https://openalex.org/A5028398622',name:'Omar Lizardo',inst:'UCLA',type:'openalex'},
+  {id:'https://openalex.org/A5068489637',name:'Eviatar Zerubavel',inst:'Rutgers University',type:'openalex'},
+];
+const PRESET_JOURNALS=[
+  {id:'https://openalex.org/S15545607',name:'American Sociological Review',type:'openalex'},
+  {id:'https://openalex.org/S40122043',name:'American Journal of Sociology',type:'openalex'},
+  {id:'https://openalex.org/S138832282',name:'Annual Review of Sociology',type:'openalex'},
+  {id:'https://openalex.org/S86339819',name:'Poetics',type:'openalex'},
+  {id:'https://openalex.org/S116820498',name:'Social Forces',type:'openalex'},
+];
+const PRESET_CN_JOURNALS=[
+  {id:'rss:SHXJ',name:'社会学研究',type:'cnki_rss',rssCode:'SHXJ'},
+  {id:'rss:SHEH',name:'社会',type:'cnki_rss',rssCode:'SHEH'},
+  {id:'rss:ZSHK',name:'中国社会科学',type:'cnki_rss',rssCode:'ZSHK'},
+  {id:'rss:KFSD',name:'开放时代',type:'cnki_rss',rssCode:'KFSD'},
+  {id:'rss:RKYZ',name:'人口研究',type:'cnki_rss',rssCode:'RKYZ'},
+  {id:'rss:SHLL',name:'社会学评论',type:'cnki_rss',rssCode:'SHLL'},
+];
+
+// ════════════════════════════════════════════════════════════════
+// API
+// ════════════════════════════════════════════════════════════════
+const OA='https://api.openalex.org', MAIL='mailto=scholarpulse@example.com';
+async function oaFetch(p, retries=2){
+  const s=p.includes('?')?'&':'?';
+  const url=`${OA}${p}${s}${MAIL}`;
+  for(let attempt=0;attempt<=retries;attempt++){
+    try{
+      const r=await fetch(url,{signal:AbortSignal.timeout(15000)});
+      if(r.status===429){
+        // Rate limited — wait and retry
+        const wait=Math.min(2000*(attempt+1),6000);
+        console.warn(`OpenAlex 429 rate limited, waiting ${wait}ms...`);
+        await sleep(wait);
+        continue;
+      }
+      if(!r.ok)throw new Error(`API ${r.status}`);
+      return r.json();
+    }catch(e){
+      if(attempt<retries&&(e.name==='TimeoutError'||e.name==='AbortError')){
+        console.warn(`OpenAlex timeout, retry ${attempt+1}...`);
+        await sleep(1000*(attempt+1));
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw new Error('API failed after retries');
+}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+
+// CNKI RSS
+const CNKI_RSS_DOMAINS=['https://navi.cnki.net/knavi/rss/','https://nxgp.cnki.net/knavi/rss/','https://rss.cnki.net/knavi/rss/'];
+function getCorsProxies(){
+  const proxies=[];
+  const custom=localStorage.getItem('sp3_proxy')||'';
+  if(custom) proxies.push(u=>custom+encodeURIComponent(u));
+  proxies.push(u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`);
+  proxies.push(u=>`https://corsproxy.io/?${encodeURIComponent(u)}`);
+  return proxies;
+}
+async function fetchWithFallback(code,customUrl){
+  if(customUrl){
+    try{const r=await fetch(customUrl,{signal:AbortSignal.timeout(10000)});if(r.ok){const txt=await r.text();if(txt&&(txt.includes('<item')||txt.includes('<entry')))return txt}}catch(e){}
+    for(const mkProxy of getCorsProxies()){try{const r=await fetch(mkProxy(customUrl),{signal:AbortSignal.timeout(10000)});if(r.ok){const txt=await r.text();if(txt&&txt.length>50&&(txt.includes('<item')||txt.includes('<entry')))return txt}}catch(e){}}
+  }
+  for(const domain of CNKI_RSS_DOMAINS){try{const r=await fetch(domain+code,{signal:AbortSignal.timeout(2500)});if(!r.ok)continue;const txt=await r.text();if(txt&&txt.includes('<item'))return txt}catch(e){}}
+  const CORS_PROXIES=getCorsProxies();
+  for(const mkProxy of CORS_PROXIES){for(const domain of CNKI_RSS_DOMAINS){try{const url=mkProxy(domain+code);const r=await fetch(url,{signal:AbortSignal.timeout(10000)});if(!r.ok)continue;const txt=await r.text();if(!txt||txt.length<50||(!txt.includes('<item')&&!txt.includes('<entry')))continue;return txt}catch(e){continue}}}
+  throw new Error('RSS unreachable');
+}
+function parseCnkiRss(xml,code,journalName){
+  const parser=new DOMParser();const doc=parser.parseFromString(xml,'text/xml');const items=doc.querySelectorAll('item');const results=[];
+  items.forEach(item=>{
+    const title=(item.querySelector('title')?.textContent||'').trim();if(!title)return;
+    const desc=item.querySelector('description')?.textContent||'';const link=item.querySelector('link')?.textContent||'';const pubDate=item.querySelector('pubDate')?.textContent||'';
+    const plainDesc=desc.replace(/<[^>]*>/g,'');
+    const authorMatch=plainDesc.match(/作者[：:]\s*([^\n]+)/);
+    const authors=authorMatch?authorMatch[1].split(/[;；,，、\s]+/).map(a=>a.trim()).filter(a=>a&&a.length<20):[];
+    const abstractMatch=plainDesc.match(/摘要[：:]\s*([\s\S]+)/);
+    const abstract=abstractMatch?abstractMatch[1].trim():(plainDesc.length>20?plainDesc.trim():null);
+    const dateObj=pubDate?new Date(pubDate):null;
+    const dateStr=dateObj&&!isNaN(dateObj)?dateObj.toISOString().split('T')[0]:'';
+    const year=dateObj&&!isNaN(dateObj)?dateObj.getFullYear():'';
+    results.push({id:'cnki:'+code+':'+title.slice(0,50),title,authors,date:dateStr,year,doi:null,doiUrl:null,abstract:abstract||null,source:journalName||code,citedBy:0,oaUrl:link||`https://navi.cnki.net/knavi/JournalDetail?pcode=CJFD&pykm=${code}`,topics:[],type:'cnki_rss'});
+  });return results;
+}
+async function fetchCnkiRss(code,journalName,customUrl){const xml=await fetchWithFallback(code,customUrl);return parseCnkiRss(xml,code,journalName)}
+
+function reconstructAbstract(inv){if(!inv)return null;const a=[];for(const[w,p]of Object.entries(inv))for(const i of p)a[i]=w;return a.join(' ')}
+function normalizeWork(w){
+  const doi=w.doi?w.doi.replace('https://doi.org/',''):null;const topics=[];
+  if(w.topics?.length)w.topics.forEach(t=>{if(t.display_name&&!topics.includes(t.display_name))topics.push(t.display_name)});
+  if(w.concepts?.length)w.concepts.filter(c=>c.score>.3).forEach(c=>{if(c.display_name&&!topics.includes(c.display_name))topics.push(c.display_name)});
+  return{id:w.id,title:w.title||'Untitled',authors:(w.authorships||[]).map(a=>a.author?.display_name).filter(Boolean),
+    date:w.publication_date||'',year:w.publication_year||'',doi,doiUrl:w.doi||null,
+    abstract:reconstructAbstract(w.abstract_inverted_index),source:w.primary_location?.source?.display_name||'',
+    citedBy:w.cited_by_count||0,oaUrl:w.id,topics:topics.slice(0,6),type:'openalex'};
+}
+
+// ════════════════════════════════════════════════════════════════
+// FETCH ALL — Parallel
+// ════════════════════════════════════════════════════════════════
+async function parallelLimit(tasks,limit,staggerMs=50){
+  if(!tasks.length)return[];
+  const results=new Array(tasks.length);let idx=0;
+  async function worker(workerId){
+    // Stagger workers so they don't all fire at once
+    if(workerId>0)await sleep(workerId*staggerMs);
+    while(true){
+      const i=idx++;
+      if(i>=tasks.length)break;
+      try{results[i]=await tasks[i]()}catch(e){results[i]={__error:e}}
+    }
+  }
+  const workers=[];for(let w=0;w<Math.min(limit,tasks.length);w++)workers.push(worker(w));
+  await Promise.all(workers);return results;
+}
+async function fetchAll(){
+  const scholars=allScholars(),journals=allJournals();
+  if(!scholars.length&&!journals.length){toast(t('addFirst'));return}
+  if(isLoading)return;isLoading=true;
+  const btn=document.getElementById('refreshBtn');btn.disabled=true;btn.innerHTML=`⏳ ${t('refreshing')}`;
+  document.getElementById('progressWrap').style.display='block';
+  document.querySelector('.progress-fill').style.width='0%';
+  const cutoffYear=new Date().getFullYear()-yearRange;
+  // Scale per_page for larger year ranges
+  const perPage=yearRange<=3?25:yearRange<=5?50:50;
+  const map=new Map();let done=0,errors=[];
+  const oaScholars=scholars.filter(s=>s.type==='openalex');
+  const oaJournals=journals.filter(j=>j.type==='openalex');
+  const cnkiJournals=journals.filter(j=>j.type==='cnki_rss');
+  const totalTasks=oaScholars.length+oaJournals.length+cnkiJournals.length;
+
+  function updateProgress(label){
+    done++;
+    const pct=totalTasks>0?Math.round(done/totalTasks*100):100;
+    document.querySelector('.progress-fill').style.width=pct+'%';
+    document.getElementById('progressText').textContent=`${label}  (${done}/${totalTasks})`;
+  }
+
+  try{
+    // Phase 1: OpenAlex requests
+    const oaTasks=[];
+    oaScholars.forEach(s=>{
+      oaTasks.push(async()=>{
+        try{
+          const d=await oaFetch(`/works?filter=authorships.author.id:${s.id},publication_year:>${cutoffYear}&sort=publication_date:desc&per_page=${perPage}`);
+          (d.results||[]).forEach(w=>map.set(w.id,normalizeWork(w)));
+        }catch(e){console.warn('Scholar fetch error:',s.name,e);errors.push(s.name)}
+        updateProgress(s.name);
+      });
+    });
+    oaJournals.forEach(j=>{
+      oaTasks.push(async()=>{
+        try{
+          const d=await oaFetch(`/works?filter=primary_location.source.id:${j.id},publication_year:>${cutoffYear}&sort=publication_date:desc&per_page=${perPage}`);
+          (d.results||[]).forEach(w=>map.set(w.id,normalizeWork(w)));
+        }catch(e){console.warn('Journal fetch error:',j.name,e);errors.push(j.name)}
+        updateProgress(j.name);
+      });
+    });
+    if(oaTasks.length)await parallelLimit(oaTasks,5);
+
+    // Phase 2: CNKI RSS
+    const cnkiTasks=cnkiJournals.map(j=>async()=>{
+      try{
+        const items=await fetchCnkiRss(j.rssCode||j.id.replace('rss:',''),j.name,j.rssUrl||null);
+        items.forEach(w=>map.set(w.id,w));
+      }catch(e){console.warn('CNKI RSS error:',j.name,e);errors.push(j.name)}
+      updateProgress(j.name);
+    });
+    if(cnkiTasks.length)await parallelLimit(cnkiTasks,3);
+
+    // Keep imported works
+    works.filter(w=>w.type==='import'&&!map.has(w.id)).forEach(w=>map.set(w.id,w));
+
+    works=[...map.values()].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    save();
+    let msg=t('fetchDone').replace('{n}',works.length);
+    if(errors.length)msg+=` (⚠ ${errors.length} ${t('sourcesFailed')})`;
+    toast(msg);
+  }catch(e){
+    console.error('fetchAll error:',e);
+    toast(t('fetchErr')+e.message);
+  }
+  isLoading=false;
+  btn.disabled=false;
+  btn.innerHTML=`↻ <span data-i="refresh">${t('refresh')}</span>`;
+  document.getElementById('progressWrap').style.display='none';
+  renderAll();
+}
+
+// ════════════════════════════════════════════════════════════════
+// SEARCH APIS
+// ════════════════════════════════════════════════════════════════
+async function searchAuthorsAPI(q){
+  const d=await oaFetch(`/authors?search=${encodeURIComponent(q)}&per_page=8&select=id,display_name,works_count,cited_by_count,last_known_institutions,topics,orcid`);
+  return await Promise.all((d.results||[]).map(async a=>{try{const wd=await oaFetch(`/works?filter=authorships.author.id:${a.id}&sort=cited_by_count:desc&per_page=1&select=id,title,publication_year`);a._topWork=wd.results?.[0]||null}catch{a._topWork=null}return a}));
+}
+async function searchSourcesAPI(q){const d=await oaFetch(`/sources?search=${encodeURIComponent(q)}&per_page=8`);return d.results||[]}
+
+// ════════════════════════════════════════════════════════════════
+// TABS
+// ════════════════════════════════════════════════════════════════
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.toggle('active',c.id==='tab-'+name));
+  document.getElementById('sidebar').style.display=name==='feed'?'':'none';
+  if(name==='scholars')renderScholarGroups();
+  if(name==='journals')renderJournalGroups();
+  if(name==='feed')renderAll();
+  if(name==='settings')loadProxyUrl();
+}
+
+// ════════════════════════════════════════════════════════════════
+// SIDEBAR FILTERS + GROUP FILTER
+// ════════════════════════════════════════════════════════════════
+function renderTopicFilter(){
+  const c={};works.forEach(w=>(w.topics||[]).forEach(t=>{c[t]=(c[t]||0)+1}));
+  const q=(document.getElementById('topicSearchInput').value||'').toLowerCase();
+  let e=Object.entries(c).sort((a,b)=>b[1]-a[1]);if(q)e=e.filter(([t])=>t.toLowerCase().includes(q));
+  document.getElementById('topicList').innerHTML=e.slice(0,50).map(([t,n])=>`<label class="sb-check-item"><input type="checkbox" ${selectedTopics.has(t)?'checked':''} onchange="toggleFilter('topic','${esc(t)}')">${esc(t)}<span class="count">${n}</span></label>`).join('')||`<div style="font-size:11px;color:var(--text-3);padding:6px 0">${t('noData')}</div>`;
+}
+function renderJournalFilter(){
+  const c={};works.forEach(w=>{if(w.source)c[w.source]=(c[w.source]||0)+1});
+  const q=(document.getElementById('journalFilterSearch').value||'').toLowerCase();
+  let e=Object.entries(c).sort((a,b)=>b[1]-a[1]);if(q)e=e.filter(([s])=>s.toLowerCase().includes(q));
+  document.getElementById('journalFilterList').innerHTML=e.map(([s,n])=>`<label class="sb-check-item"><input type="checkbox" ${selectedJournals.has(s)?'checked':''} onchange="toggleFilter('journal','${esc(s)}')">${esc(s)}<span class="count">${n}</span></label>`).join('')||`<div style="font-size:11px;color:var(--text-3);padding:6px 0">${t('noData')}</div>`;
+}
+function renderAuthorFilter(){
+  const c={};works.forEach(w=>w.authors.forEach(a=>{c[a]=(c[a]||0)+1}));
+  const q=(document.getElementById('authorFilterSearch').value||'').toLowerCase();
+  let e=Object.entries(c).sort((a,b)=>b[1]-a[1]);if(q)e=e.filter(([a])=>a.toLowerCase().includes(q));
+  document.getElementById('authorFilterList').innerHTML=e.slice(0,60).map(([a,n])=>`<label class="sb-check-item"><input type="checkbox" ${selectedAuthors.has(a)?'checked':''} onchange="toggleFilter('author','${esc(a)}')">${esc(a)}<span class="count">${n}</span></label>`).join('')||`<div style="font-size:11px;color:var(--text-3);padding:6px 0">${t('noData')}</div>`;
+}
+function renderGroupFilter(){
+  const groups=[];
+  scholarGroups.forEach(g=>{if(g.items.length)groups.push({label:`👤 ${g.name}`,key:`s:${g.name}`,items:g.items})});
+  journalGroups.forEach(g=>{if(g.items.length)groups.push({label:`📖 ${g.name}`,key:`j:${g.name}`,items:g.items})});
+  document.getElementById('groupFilterList').innerHTML=groups.map(g=>`<label class="sb-check-item"><input type="checkbox" ${selectedGroups.has(g.key)?'checked':''} onchange="toggleFilter('group','${esc(g.key)}')">${esc(g.label)}<span class="count">${g.items.length}</span></label>`).join('')||`<div style="font-size:11px;color:var(--text-3);padding:6px 0">${t('noData')}</div>`;
+}
+function toggleFilter(type,val){
+  const s=type==='topic'?selectedTopics:type==='journal'?selectedJournals:type==='author'?selectedAuthors:selectedGroups;
+  s.has(val)?s.delete(val):s.add(val);currentPage=1;renderWorks();
+}
+function clearTopicFilter(){selectedTopics.clear();renderTopicFilter();renderWorks()}
+function clearJournalFilter(){selectedJournals.clear();renderJournalFilter();renderWorks()}
+function clearAuthorFilter(){selectedAuthors.clear();renderAuthorFilter();renderWorks()}
+function clearGroupFilter(){selectedGroups.clear();renderGroupFilter();renderWorks()}
+function filterByTopic(t){switchTab('feed');selectedTopics.clear();selectedTopics.add(t);currentPage=1;renderAll()}
+
+// ════════════════════════════════════════════════════════════════
+// RENDER WORKS with PAGINATION
+// ════════════════════════════════════════════════════════════════
+function renderAll(){renderTopicFilter();renderJournalFilter();renderAuthorFilter();renderGroupFilter();renderWorks();updateBadges()}
+function isChinese(str){return /[\u4e00-\u9fff]/.test(str)}
+
+// Group filter logic: find works matching selected groups
+function getGroupFilteredIds(){
+  if(!selectedGroups.size) return null;
+  const names=new Set();
+  selectedGroups.forEach(key=>{
+    const[type,gname]=key.split(':');
+    const groups=type==='s'?scholarGroups:journalGroups;
+    const g=groups.find(gr=>gr.name===gname);
+    if(g) g.items.forEach(item=>names.add(item.name));
+  });
+  return names;
+}
+
+function renderWorks(){
+  const container=document.getElementById('worksContainer');
+  const q=(document.getElementById('searchInput')?.value||'').toLowerCase();
+  const sortBy=document.getElementById('sortSelect')?.value||'date_desc';
+  const langFilter=document.getElementById('langSelect')?.value||'all';
+  const showReadV=document.getElementById('showReadCb')?.checked??true;
+  const starOnlyV=document.getElementById('showStarCb')?.checked??false;
+  const groupNames=getGroupFilteredIds();
+
+  let filtered=works.filter(w=>{
+    if(q){const m=w.title.toLowerCase().includes(q)||w.authors.some(a=>a.toLowerCase().includes(q))||(w.abstract&&w.abstract.toLowerCase().includes(q))||(w.doi&&w.doi.toLowerCase().includes(q));if(!m)return false}
+    if(selectedTopics.size&&!(w.topics||[]).some(t=>selectedTopics.has(t)))return false;
+    if(selectedJournals.size&&!selectedJournals.has(w.source))return false;
+    if(selectedAuthors.size&&!w.authors.some(a=>selectedAuthors.has(a)))return false;
+    if(groupNames){const match=w.authors.some(a=>groupNames.has(a))||groupNames.has(w.source);if(!match)return false}
+    if(!showReadV&&readSet.has(w.id))return false;
+    if(starOnlyV&&!starSet.has(w.id))return false;
+    if(langFilter==='zh'&&!isChinese(w.title))return false;
+    if(langFilter==='en'&&isChinese(w.title))return false;
+    return true;
+  });
+
+  if(sortBy==='date_desc')filtered.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  else if(sortBy==='date_asc')filtered.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  else if(sortBy==='cited')filtered.sort((a,b)=>(b.citedBy||0)-(a.citedBy||0));
+  else if(sortBy==='title')filtered.sort((a,b)=>a.title.localeCompare(b.title));
+
+  // Pagination
+  const totalPages=Math.max(1,Math.ceil(filtered.length/pageSize));
+  if(currentPage>totalPages)currentPage=totalPages;
+  const startIdx=(currentPage-1)*pageSize;
+  const pageItems=filtered.slice(startIdx,startIdx+pageSize);
+
+  const toolbarHtml=`<div class="toolbar">
+    <label>${t('sortLabel')} <select id="sortSelect" onchange="renderWorks()">
+      <option value="date_desc"${sortBy==='date_desc'?' selected':''}>${t('dateDesc')}</option>
+      <option value="date_asc"${sortBy==='date_asc'?' selected':''}>${t('dateAsc')}</option>
+      <option value="cited"${sortBy==='cited'?' selected':''}>${t('cited')}</option>
+      <option value="title"${sortBy==='title'?' selected':''}>${t('titleSort')}</option>
+    </select></label>
+    <div class="sep"></div>
+    <label>${t('langLabel')} <select id="langSelect" onchange="renderWorks()">
+      <option value="all"${langFilter==='all'?' selected':''}>${t('langAll')}</option>
+      <option value="zh"${langFilter==='zh'?' selected':''}>${t('langZh')}</option>
+      <option value="en"${langFilter==='en'?' selected':''}>${t('langEn')}</option>
+    </select></label>
+    <div class="sep"></div>
+    <label><input type="checkbox" id="showReadCb" ${showReadV?'checked':''} onchange="renderWorks()"> ${t('showRead')}</label>
+    <label><input type="checkbox" id="showStarCb" ${starOnlyV?'checked':''} onchange="renderWorks()"> ${t('starOnly')}</label>
+  </div>`;
+
+  if(works.length===0){container.innerHTML=toolbarHtml+`<div class="empty"><div class="empty-icon">📚</div><div class="empty-title">${t('emptyTitle')}</div><div class="empty-desc">${t('emptyDesc')}</div></div>`;return}
+  if(filtered.length===0){container.innerHTML=toolbarHtml+`<div class="empty"><div class="empty-title">${t('noMatch')}</div><div class="empty-desc">${t('adjustFilter')}</div></div>`;return}
+
+  const paginationHtml=`<div class="pagination">
+    ${totalPages>1?`<button onclick="goPage(${currentPage-1})" ${currentPage<=1?'disabled':''}>${t('prev')}</button>
+    ${Array.from({length:Math.min(totalPages,7)},(_, i)=>{
+      let p;if(totalPages<=7)p=i+1;else if(currentPage<=4)p=i+1;else if(currentPage>=totalPages-3)p=totalPages-6+i;else p=currentPage-3+i;
+      return `<button class="${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`;
+    }).join('')}
+    ${totalPages>7&&currentPage<totalPages-3?`<span class="page-info">…</span><button onclick="goPage(${totalPages})">${totalPages}</button>`:''}
+    <button onclick="goPage(${currentPage+1})" ${currentPage>=totalPages?'disabled':''}>${t('next')}</button>`:''}
+    <label style="margin-left:auto;display:flex;align-items:center;gap:4px;font-size:.85em;color:var(--text-3)">${t('perPage')} <select id="pageSizeSelect" onchange="changePageSize(this.value)" style="padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:.88em">
+      ${[10,20,50,100].map(n=>`<option value="${n}"${pageSize===n?' selected':''}>${n}</option>`).join('')}
+    </select></label>
+  </div>`;
+
+  container.innerHTML=toolbarHtml+`<p class="result-count">${t('total')} ${filtered.length} ${t('articles')} · ${t('page').replace('{n}',currentPage)} / ${totalPages}</p>`+pageItems.map(w=>{
+    const isRead=readSet.has(w.id),isStarred=starSet.has(w.id),isExp=expandedWork===w.id;
+    const tags=(w.topics||[]).map(t=>`<span class="work-topic" onclick="event.stopPropagation();filterByTopic('${esc(t)}')">${esc(t)}</span>`).join('');
+    return `<article class="work-card${isRead?' read':''}" onclick="toggleExpand('${esc(w.id)}')">
+      <div class="work-header"><div class="work-meta">
+        ${w.source?`<span class="work-source">${esc(w.source)}</span>`:''}
+        <span class="work-date">${esc(w.date||String(w.year))}</span>
+        ${w.citedBy>0?`<span class="work-cited">${t('cited2')} ${w.citedBy}</span>`:''}
+      </div><div class="work-actions" onclick="event.stopPropagation()">
+        <button class="btn-ghost${isStarred?' star-active':''}" onclick="toggleStar('${esc(w.id)}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="${isStarred?'var(--star)':'none'}" stroke="${isStarred?'var(--star)':'currentColor'}" stroke-width="1.8"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></button>
+        <button class="btn-ghost${isRead?' check-active':''}" onclick="toggleRead('${esc(w.id)}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 6L9 17l-5-5"/></svg></button>
+      </div></div>
+      <h3 class="work-title">${esc(w.title)}</h3>
+      <p class="work-authors">${esc(w.authors.join(', '))}</p>
+      ${tags?`<div class="work-topics">${tags}</div>`:''}
+      ${isExp?`<div class="work-expanded">
+        ${w.abstract?`<p class="work-abstract">${esc(w.abstract)}</p>`:`<p class="work-abstract" style="color:var(--text-3);font-style:italic">${t('noAbstract')}</p>`}
+        <div class="work-links">
+          ${w.doi?`<a href="https://doi.org/${esc(w.doi)}" target="_blank" onclick="event.stopPropagation()">DOI: ${esc(w.doi)} ↗</a>`:''}
+          <a href="${esc(w.oaUrl)}" target="_blank" onclick="event.stopPropagation()">${w.type==='cnki_rss'?'CNKI':'OpenAlex'} ↗</a>
+        </div></div>`:''}
+    </article>`}).join('')+paginationHtml;
+}
+
+function goPage(p){const totalPages=Math.ceil(works.length/pageSize);currentPage=Math.max(1,Math.min(p,totalPages));renderWorks();window.scrollTo({top:0,behavior:'smooth'})}
+function changePageSize(v){pageSize=parseInt(v);localStorage.setItem('sp3_pageSize',pageSize);currentPage=1;renderWorks()}
+function toggleExpand(id){expandedWork=expandedWork===id?null:id;renderWorks()}
+function toggleRead(id){readSet.has(id)?readSet.delete(id):readSet.add(id);save();renderWorks()}
+function toggleStar(id){starSet.has(id)?starSet.delete(id):starSet.add(id);save();renderWorks()}
+
+// ════════════════════════════════════════════════════════════════
+// GROUPS — clean drag system + confirm delete + collapse/expand
+// ════════════════════════════════════════════════════════════════
+let collapsedGroups=new Set(JSON.parse(localStorage.getItem('sp3_collapsed')||'[]'));
+function saveCollapsed(){localStorage.setItem('sp3_collapsed',JSON.stringify([...collapsedGroups]))}
+function toggleCollapse(type,gi){const key=`${type}:${gi}`;collapsedGroups.has(key)?collapsedGroups.delete(key):collapsedGroups.add(key);saveCollapsed();type==='scholars'?renderScholarGroups():renderJournalGroups()}
+
+function getGroups(type){return type==='scholars'?scholarGroups:journalGroups}
+function setGroups(type,g){if(type==='scholars')scholarGroups=g;else journalGroups=g;save()}
+function addGroup(type){const g=getGroups(type);g.push({name:lang==='zh'?'新分组':'New Group',items:[]});setGroups(type,g);type==='scholars'?renderScholarGroups():renderJournalGroups()}
+
+function removeGroup(type,gi){
+  const g=getGroups(type);
+  if(g.length<=1){toast(t('keepOne'));return}
+  const msg=t('confirmRemoveGroup').replace('{name}',g[gi].name).replace('{n}',g[gi].items.length);
+  if(!confirm(msg))return;
+  g.splice(gi,1);setGroups(type,g);type==='scholars'?renderScholarGroups():renderJournalGroups();
+}
+function renameGroup(type,gi,val){const g=getGroups(type);g[gi].name=val;setGroups(type,g)}
+function sortGroupAlpha(type,gi){const g=getGroups(type);g[gi].items.sort((a,b)=>a.name.localeCompare(b.name));setGroups(type,g);type==='scholars'?renderScholarGroups():renderJournalGroups()}
+
+function removeEntity(type,gi,ei){
+  const g=getGroups(type);const item=g[gi].items[ei];
+  if(!item)return;
+  const msg=t('confirmRemoveEntity').replace('{name}',item.name);
+  if(!confirm(msg))return;
+  g[gi].items.splice(ei,1);setGroups(type,g);
+  type==='scholars'?renderScholarGroups():renderJournalGroups();renderAll();
+}
+function addEntityToGroup(type,gi,entity){
+  const g=getGroups(type);const allItems=g.flatMap(gr=>gr.items);
+  if(allItems.find(i=>i&&i.id===entity.id)){toast(t('added'));return}
+  g[gi].items.push(entity);setGroups(type,g);
+  type==='scholars'?renderScholarGroups():renderJournalGroups();
+  toast(`${t('added')}: ${entity.name}`);
+}
+function renameEntity(type,gi,ei){
+  const g=getGroups(type);const item=g[gi].items[ei];
+  const newName=prompt(t('rename'),item.name);
+  if(newName&&newName.trim()){item.name=newName.trim();setGroups(type,g);type==='scholars'?renderScholarGroups():renderJournalGroups()}
+}
+
+// ── Drag system: uses dataTransfer to distinguish item vs group drags ──
+function onItemDragStart(type,gi,ei,ev){
+  ev.stopPropagation(); // prevent group drag from firing
+  ev.dataTransfer.setData('text/plain',JSON.stringify({kind:'item',type,gi,ei}));
+  ev.dataTransfer.effectAllowed='move';
+  ev.target.closest('.entity-item').classList.add('dragging');
+}
+function onItemDragEnd(ev){
+  const el=ev.target.closest('.entity-item');if(el)el.classList.remove('dragging');
+  document.querySelectorAll('.item-drag-over-top,.item-drag-over-bottom,.drag-over').forEach(e=>{e.classList.remove('item-drag-over-top','item-drag-over-bottom','drag-over')});
+}
+function onItemDragOver(ev){
+  ev.preventDefault();ev.stopPropagation();
+  const el=ev.currentTarget;const rect=el.getBoundingClientRect();const mid=rect.top+rect.height/2;
+  el.classList.toggle('item-drag-over-top',ev.clientY<mid);
+  el.classList.toggle('item-drag-over-bottom',ev.clientY>=mid);
+}
+function onItemDragLeave(ev){ev.currentTarget.classList.remove('item-drag-over-top','item-drag-over-bottom')}
+function onItemDrop(type,targetGi,targetEi,ev){
+  ev.preventDefault();ev.stopPropagation();
+  ev.currentTarget.classList.remove('item-drag-over-top','item-drag-over-bottom');
+  let data;try{data=JSON.parse(ev.dataTransfer.getData('text/plain'))}catch{return}
+  if(data.kind!=='item'||data.type!==type)return;
+  const srcGi=data.gi,srcEi=data.ei;
+  const g=getGroups(type);
+  const item=g[srcGi].items[srcEi];if(!item)return;
+  // Remove from source
+  g[srcGi].items.splice(srcEi,1);
+  // Calculate insert index — adjust if same group and source was before target
+  let insertIdx=targetEi;
+  if(srcGi===targetGi&&srcEi<targetEi)insertIdx--;
+  const rect=ev.currentTarget.getBoundingClientRect();
+  if(ev.clientY>=rect.top+rect.height/2)insertIdx++;
+  g[targetGi].items.splice(insertIdx,0,item);
+  setGroups(type,g);type==='scholars'?renderScholarGroups():renderJournalGroups();
+}
+function onGroupBodyDragOver(ev){ev.preventDefault();ev.currentTarget.classList.add('drag-over')}
+function onGroupBodyDragLeave(ev){ev.currentTarget.classList.remove('drag-over')}
+function onGroupBodyDrop(type,targetGi,ev){
+  ev.preventDefault();ev.currentTarget.classList.remove('drag-over');
+  let data;try{data=JSON.parse(ev.dataTransfer.getData('text/plain'))}catch{return}
+  if(data.kind!=='item'||data.type!==type)return;
+  const g=getGroups(type);const item=g[data.gi].items[data.ei];if(!item)return;
+  g[data.gi].items.splice(data.ei,1);
+  g[targetGi].items.push(item);
+  setGroups(type,g);type==='scholars'?renderScholarGroups():renderJournalGroups();
+}
+
+// ── Group-level drag (reorder groups via header drag handle) ──
+function onGroupDragStart(type,gi,ev){
+  ev.dataTransfer.setData('text/plain',JSON.stringify({kind:'group',type,gi}));
+  ev.dataTransfer.effectAllowed='move';
+  ev.currentTarget.closest('.group').classList.add('group-dragging');
+}
+function onGroupDragEnd(ev){
+  ev.currentTarget.closest('.group')?.classList.remove('group-dragging');
+  document.querySelectorAll('.group-drag-over-top,.group-drag-over-bottom').forEach(e=>{e.classList.remove('group-drag-over-top','group-drag-over-bottom')});
+}
+function onGroupDragOver(ev){
+  ev.preventDefault();
+  // Only respond to group drags
+  const grp=ev.currentTarget;const rect=grp.getBoundingClientRect();const mid=rect.top+rect.height/2;
+  grp.classList.toggle('group-drag-over-top',ev.clientY<mid);
+  grp.classList.toggle('group-drag-over-bottom',ev.clientY>=mid);
+}
+function onGroupDragLeave(ev){ev.currentTarget.classList.remove('group-drag-over-top','group-drag-over-bottom')}
+function onGroupDrop(type,targetGi,ev){
+  ev.preventDefault();ev.currentTarget.classList.remove('group-drag-over-top','group-drag-over-bottom');
+  let data;try{data=JSON.parse(ev.dataTransfer.getData('text/plain'))}catch{return}
+  if(data.kind==='item'){
+    // Item dropped on group wrapper — redirect to body drop
+    onGroupBodyDrop(type,targetGi,ev);return;
+  }
+  if(data.kind!=='group'||data.type!==type||data.gi===targetGi)return;
+  const g=getGroups(type);const moved=g.splice(data.gi,1)[0];
+  const rect=ev.currentTarget.getBoundingClientRect();const insertBefore=ev.clientY<rect.top+rect.height/2;
+  let idx=targetGi;if(data.gi<targetGi)idx--;if(!insertBefore)idx++;
+  g.splice(idx,0,moved);setGroups(type,g);type==='scholars'?renderScholarGroups():renderJournalGroups();
+}
+
+// Entity works list (click to expand)
+function toggleEntityWorks(type,gi,ei){
+  const key=`${type}:${gi}:${ei}`;expandedEntity=expandedEntity===key?null:key;
+  type==='scholars'?renderScholarGroups():renderJournalGroups();
+}
+function getEntityWorks(type,gi,ei){
+  const g=getGroups(type);const item=g[gi]?.items[ei];if(!item)return[];
+  if(type==='scholars')return works.filter(w=>w.authors.some(a=>a.toLowerCase()===item.name.toLowerCase()));
+  else return works.filter(w=>w.source===item.name);
+}
+
+function renderScholarGroups(){
+  const container=document.getElementById('scholarGroups');
+  const presets=document.getElementById('scholarPresets');
+  const countEl=document.getElementById('scholarCount');
+  const sc=allScholars().length;
+  countEl.textContent=sc?`(${sc}${lang==='zh'?'位':''})`:'';
+  if(sc===0){
+    presets.innerHTML=`<div class="preset-section"><p class="preset-title">${t('presetScholar')}</p><div class="preset-list">${PRESET_SCHOLARS.map(p=>`<button class="preset-chip" onclick="addEntityToGroup('scholars',0,${JSON.stringify(p).replace(/"/g,'&quot;')})">&plus; ${esc(p.name)}</button>`).join('')}</div></div>`;
+  }else presets.innerHTML='';
+  container.innerHTML=scholarGroups.map((g,gi)=>{
+    const isCollapsed=collapsedGroups.has(`scholars:${gi}`);
+    return `<div class="group" ondragover="onGroupDragOver(event)" ondragleave="onGroupDragLeave(event)" ondrop="onGroupDrop('scholars',${gi},event)">
+      <div class="group-header" draggable="true" ondragstart="onGroupDragStart('scholars',${gi},event)" ondragend="onGroupDragEnd(event)">
+        <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0">
+          <button class="btn-ghost" onclick="toggleCollapse('scholars',${gi})" title="${isCollapsed?t('expand'):t('collapse')}" style="font-size:11px;flex-shrink:0">${isCollapsed?'▶':'▼'}</button>
+          <input class="group-name" value="${esc(g.name)}" onchange="renameGroup('scholars',${gi},this.value)" onclick="event.stopPropagation()">
+          <span style="font-size:.78em;color:var(--text-3);flex-shrink:0">${g.items.length}</span>
+        </div>
+        <div class="group-actions">
+          <button class="btn-ghost" onclick="sortGroupAlpha('scholars',${gi})" title="${t('sortAlpha')}">A→Z</button>
+          <button class="btn-ghost" onclick="openAddPanelForGroup('scholar',${gi})" title="${t('addToGroup')}">+</button>
+          <button class="btn-ghost" onclick="openManualAdd('scholars',${gi})" title="${t('manualAdd')}">✎</button>
+          <button class="btn-ghost btn-danger" onclick="removeGroup('scholars',${gi})" title="${t('deleteGroup')}">✕</button>
+        </div></div>
+      ${isCollapsed?'':`<div class="group-body" ondragover="onGroupBodyDragOver(event)" ondragleave="onGroupBodyDragLeave(event)" ondrop="onGroupBodyDrop('scholars',${gi},event)">
+        ${g.items.length?g.items.map((s,ei)=>{
+          if(!s)return'';
+          const eKey=`scholars:${gi}:${ei}`;const isExp=expandedEntity===eKey;
+          const eWorks=isExp?getEntityWorks('scholars',gi,ei):[];
+          return `<div class="entity-item" draggable="true" ondragstart="onItemDragStart('scholars',${gi},${ei},event)" ondragend="onItemDragEnd(event)" ondragover="onItemDragOver(event)" ondragleave="onItemDragLeave(event)" ondrop="onItemDrop('scholars',${gi},${ei},event)" onclick="toggleEntityWorks('scholars',${gi},${ei})">
+            <div><div class="name">${esc(s.name)}</div><div class="meta">${esc(s.inst||'')}</div></div>
+            <div style="display:flex;gap:2px;align-items:center" onclick="event.stopPropagation()">
+              <button class="btn-ghost btn-danger" onclick="removeEntity('scholars',${gi},${ei})">✕</button>
+            </div>
+          </div>${isExp?`<div class="entity-works-list">${eWorks.length?eWorks.slice(0,15).map(w=>`<div class="entity-work-item" onclick="event.stopPropagation();switchTab('feed');expandedWork='${esc(w.id)}';renderAll()"><span class="ew-title">${esc(w.title)}</span><span class="ew-date">${esc(w.date||'')}</span></div>`).join('')+
+            (eWorks.length>15?`<div style="font-size:.82em;color:var(--text-3);padding:4px 6px">… ${t('total')} ${eWorks.length} ${t('articles')}</div>`:''): `<div style="font-size:.82em;color:var(--text-3);padding:4px 6px;font-style:italic">${t('noEntityWorks')}</div>`}</div>`:''}`}).join(''):`<div class="group-empty">${t('dragHint')}</div>`}
+      </div>`}
+    </div>`}).join('');
+  updateBadges();
+}
+
+function renderJournalGroups(){
+  const container=document.getElementById('journalGroups');
+  const presets=document.getElementById('journalPresets');
+  const countEl=document.getElementById('journalCount');
+  const jc=allJournals().length;
+  countEl.textContent=jc?`(${jc}${lang==='zh'?'本':''})`:'';
+  if(jc===0){
+    presets.innerHTML=`<div class="preset-section"><p class="preset-title">${t('presetEnJournal')}</p><div class="preset-list">${PRESET_JOURNALS.map(p=>`<button class="preset-chip" onclick="addEntityToGroup('journals',0,${JSON.stringify(p).replace(/"/g,'&quot;')})">&plus; ${esc(p.name)}</button>`).join('')}</div></div>
+      <div class="preset-section" style="margin-top:8px"><p class="preset-title">${t('presetCnJournal')}</p><div class="preset-list">${PRESET_CN_JOURNALS.map(p=>`<button class="preset-chip" onclick="addEntityToGroup('journals',0,${JSON.stringify(p).replace(/"/g,'&quot;')})">&plus; ${esc(p.name)}</button>`).join('')}</div></div>`;
+  }else presets.innerHTML='';
+  container.innerHTML=journalGroups.map((g,gi)=>{
+    const isCollapsed=collapsedGroups.has(`journals:${gi}`);
+    return `<div class="group" ondragover="onGroupDragOver(event)" ondragleave="onGroupDragLeave(event)" ondrop="onGroupDrop('journals',${gi},event)">
+      <div class="group-header" draggable="true" ondragstart="onGroupDragStart('journals',${gi},event)" ondragend="onGroupDragEnd(event)">
+        <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0">
+          <button class="btn-ghost" onclick="toggleCollapse('journals',${gi})" title="${isCollapsed?t('expand'):t('collapse')}" style="font-size:11px;flex-shrink:0">${isCollapsed?'▶':'▼'}</button>
+          <input class="group-name" value="${esc(g.name)}" onchange="renameGroup('journals',${gi},this.value)" onclick="event.stopPropagation()">
+          <span style="font-size:.78em;color:var(--text-3);flex-shrink:0">${g.items.length}</span>
+        </div>
+        <div class="group-actions">
+          <button class="btn-ghost" onclick="sortGroupAlpha('journals',${gi})" title="${t('sortAlpha')}">A→Z</button>
+          <button class="btn-ghost" onclick="openAddPanelForGroup('journal',${gi})" title="${t('addToGroup')}">+</button>
+          <button class="btn-ghost" onclick="openManualAdd('journals',${gi})" title="${t('manualAdd')}">✎</button>
+          <button class="btn-ghost btn-danger" onclick="removeGroup('journals',${gi})" title="${t('deleteGroup')}">✕</button>
+        </div></div>
+      ${isCollapsed?'':`<div class="group-body" ondragover="onGroupBodyDragOver(event)" ondragleave="onGroupBodyDragLeave(event)" ondrop="onGroupBodyDrop('journals',${gi},event)">
+        ${g.items.length?g.items.map((j,ei)=>{
+          if(!j)return'';
+          const eKey=`journals:${gi}:${ei}`;const isExp=expandedEntity===eKey;
+          const eWorks=isExp?getEntityWorks('journals',gi,ei):[];
+          return `<div class="entity-item" draggable="true" ondragstart="onItemDragStart('journals',${gi},${ei},event)" ondragend="onItemDragEnd(event)" ondragover="onItemDragOver(event)" ondragleave="onItemDragLeave(event)" ondrop="onItemDrop('journals',${gi},${ei},event)" onclick="toggleEntityWorks('journals',${gi},${ei})">
+            <div style="min-width:0"><div class="name">${esc(j.name)}</div>
+              <div class="meta">${j.type==='cnki_rss'?'CNKI RSS':'OpenAlex'} ${esc(j.issn||'')}</div></div>
+            <div style="display:flex;gap:2px;align-items:center" onclick="event.stopPropagation()">
+              <button class="btn-ghost" onclick="renameEntity('journals',${gi},${ei})" title="${t('rename')}">✎</button>
+              ${j.type==='cnki_rss'?`<button class="btn-ghost" onclick="editRssUrl('journals',${gi},${ei})" title="RSS URL">🔗</button>`:''}
+              <button class="btn-ghost btn-danger" onclick="removeEntity('journals',${gi},${ei})">✕</button>
+            </div>
+          </div>${isExp?`<div class="entity-works-list">${eWorks.length?eWorks.slice(0,15).map(w=>`<div class="entity-work-item" onclick="event.stopPropagation();switchTab('feed');expandedWork='${esc(w.id)}';renderAll()"><span class="ew-title">${esc(w.title)}</span><span class="ew-date">${esc(w.date||'')}</span></div>`).join('')+
+            (eWorks.length>15?`<div style="font-size:.82em;color:var(--text-3);padding:4px 6px">… ${t('total')} ${eWorks.length} ${t('articles')}</div>`:''): `<div style="font-size:.82em;color:var(--text-3);padding:4px 6px;font-style:italic">${t('noEntityWorks')}</div>`}</div>`:''}`}).join(''):`<div class="group-empty">${t('dragHint')}</div>`}
+      </div>`}
+    </div>`}).join('');
+  updateBadges();
+}
+
+// ════════════════════════════════════════════════════════════════
+// MANUAL ADD (scholar or journal by hand)
+// ════════════════════════════════════════════════════════════════
+function openManualAdd(type,gi){
+  const isScholar=type==='scholars';
+  const formId=`manualForm_${type}_${gi}`;
+  const existing=document.getElementById(formId);
+  if(existing){existing.remove();return}
+  // Remove other open forms
+  document.querySelectorAll('.manual-add-form').forEach(e=>e.remove());
+  const container=document.querySelector(`#${isScholar?'scholarGroups':'journalGroups'} .group:nth-child(${gi+1}) .group-body`);
+  const form=document.createElement('div');form.className='manual-add-form';form.id=formId;
+  form.innerHTML=`
+    <input id="ma_name_${gi}" placeholder="${t('manualAddName')}" autofocus>
+    <input id="ma_id_${gi}" placeholder="${t('manualAddId')}">
+    ${isScholar?`<input id="ma_inst_${gi}" placeholder="${t('manualAddInst')}">`:''} 
+    <button class="btn btn-primary btn-sm" onclick="submitManualAdd('${type}',${gi})">${t('add')}</button>
+    <button class="btn btn-sm" onclick="this.parentElement.remove()">✕</button>`;
+  container.appendChild(form);
+  form.querySelector('input').focus();
+}
+function submitManualAdd(type,gi){
+  const name=document.getElementById(`ma_name_${gi}`).value.trim();
+  if(!name){toast('Name required');return}
+  const id=document.getElementById(`ma_id_${gi}`)?.value.trim()||('manual:'+Date.now());
+  const entity={id,name,type:'manual'};
+  if(type==='scholars'){entity.inst=document.getElementById(`ma_inst_${gi}`)?.value.trim()||''}
+  addEntityToGroup(type,gi,entity);
+  document.querySelectorAll('.manual-add-form').forEach(e=>e.remove());
+}
+
+// ════════════════════════════════════════════════════════════════
+// ADD PANEL (search-based)
+// ════════════════════════════════════════════════════════════════
+let addTargetGroup=0;
+function openAddPanel(type){addTargetGroup=0;_openAddPanel(type)}
+function openAddPanelForGroup(type,gi){addTargetGroup=gi;_openAddPanel(type)}
+function _openAddPanel(type){
+  const panelId=type==='scholar'?'scholarAddPanel':'journalAddPanel';
+  const panel=document.getElementById(panelId);
+  const label=type==='scholar'?t('scholar'):t('journal');
+  const isJournal=type==='journal';
+  panel.style.display='block';
+  panel.innerHTML=`<div class="add-panel">
+    <div class="add-panel-header"><span class="add-panel-title">${t('searchLabel')} ${label}</span>
+      <button class="btn-ghost" onclick="document.getElementById('${panelId}').style.display='none'">✕</button></div>
+    ${isJournal?`<div style="margin-bottom:8px;display:flex;align-items:center;gap:8px">
+      <span style="font-size:11px;color:var(--text-3)">${t('dataSource')}</span>
+      <div class="source-toggle" id="journalSourceToggle">
+        <button class="active" onclick="setJournalSource('openalex')">OpenAlex</button>
+        <button onclick="setJournalSource('cnki_rss')">CNKI RSS</button>
+      </div></div>`:''}
+    <div class="add-search-row">
+      <input id="${type}SearchInput" placeholder="${type==='scholar'?t('searchScholar'):t('searchJournal2')}" onkeydown="if(event.key==='Enter')doSearch('${type}')">
+      <button class="btn btn-primary btn-sm" onclick="doSearch('${type}')">${t('searchLabel')}</button>
+    </div>
+    ${isJournal?`<div id="cnkiRssHelp" style="display:none;font-size:11px;color:var(--text-3);margin-bottom:6px;line-height:1.5">${t('cnkiHelp')}</div>`:''}
+    <div id="${type}Results"></div>
+  </div>`;
+  document.getElementById(`${type}SearchInput`).focus();
+}
+let journalSearchSource='openalex';
+function setJournalSource(src){
+  journalSearchSource=src;
+  document.querySelectorAll('#journalSourceToggle button').forEach(b=>b.classList.toggle('active',b.textContent.includes(src==='openalex'?'OpenAlex':'RSS')));
+  document.getElementById('cnkiRssHelp').style.display=src==='cnki_rss'?'block':'none';
+  document.getElementById('journalResults').innerHTML='';
+}
+async function doSearch(type){
+  const input=document.getElementById(`${type}SearchInput`);const resultsDiv=document.getElementById(`${type}Results`);
+  const q=input.value.trim();if(!q)return;
+  resultsDiv.innerHTML=`<p style="color:var(--text-3);font-size:11px;padding:4px 0">${t('searching')}</p>`;
+  const groupType=type==='scholar'?'scholars':'journals';
+  try{
+    if(type==='journal'&&journalSearchSource==='cnki_rss'){
+      const qLower=q.toLowerCase();let matches=PRESET_CN_JOURNALS.filter(p=>p.name.includes(q)||p.rssCode.toLowerCase().includes(qLower));
+      if(matches.length===0)matches=[{id:'rss:'+q.toUpperCase(),name:q.toUpperCase()+` (${lang==='zh'?'自定义代码':'custom code'})`,type:'cnki_rss',rssCode:q.toUpperCase()}];
+      resultsDiv.innerHTML='<div class="add-results">'+matches.map(r=>{
+        const added=allJournals().find(j=>j.id===r.id);
+        return `<div class="add-result"><div><div class="add-result-name">${esc(r.name)}</div><div class="add-result-meta">CNKI RSS · Code: ${esc(r.rssCode)}</div></div>
+          <button class="btn btn-sm${added?' ':' btn-outline'}" ${added?'disabled style="opacity:.5"':`onclick="addSearchResult(this,'journals',${addTargetGroup},${JSON.stringify(r).replace(/"/g,'&quot;')})"`}>${added?t('added'):t('add')}</button></div>`;
+      }).join('')+'</div>';return;
+    }
+    const results=type==='scholar'?await searchAuthorsAPI(q):await searchSourcesAPI(q);
+    if(!results.length){resultsDiv.innerHTML=`<p style="color:var(--text-3);font-size:11px;padding:4px 0">${t('noResult')}</p>`;return}
+    resultsDiv.innerHTML='<div class="add-results">'+results.map(r=>{
+      if(type==='scholar'){
+        const added=allScholars().find(s=>s.id===r.id);const inst=r.last_known_institutions?.[0]?.display_name||'';
+        const orcid=r.orcid?r.orcid.replace('https://orcid.org/',''):'';
+        const topics=(r.topics||[]).slice(0,3).map(t=>t.display_name).join(', ');const topWork=r._topWork?.title||'';
+        const entity={id:r.id,name:r.display_name,inst,type:'openalex'};
+        return `<div class="add-result"><div style="min-width:0">
+          <div class="add-result-name">${esc(r.display_name)}${orcid?`<span class="add-result-orcid">⁍ ${esc(orcid)}</span>`:''}</div>
+          <div class="add-result-meta">${esc(inst)}${inst?' · ':''}${r.works_count||0} works · ${t('cited2')} ${r.cited_by_count||0}</div>
+          ${topics?`<div class="add-result-topics">${esc(topics)}</div>`:''}
+          ${topWork?`<div class="add-result-topwork">${t('topWork')}: ${esc(topWork)}</div>`:''}
+        </div><button class="btn btn-sm${added?' ':' btn-outline'}" ${added?'disabled style="opacity:.5"':`onclick="addSearchResult(this,'scholars',${addTargetGroup},${JSON.stringify(entity).replace(/"/g,'&quot;')})"`}>${added?t('added'):t('add')}</button></div>`;
+      }else{
+        const added=allJournals().find(j=>j.id===r.id);const entity={id:r.id,name:r.display_name,issn:r.issn_l||'',type:'openalex'};
+        return `<div class="add-result"><div><div class="add-result-name">${esc(r.display_name)}</div><div class="add-result-meta">${esc(r.issn_l||'')} · ${r.works_count||0} works</div></div>
+          <button class="btn btn-sm${added?' ':' btn-outline'}" ${added?'disabled style="opacity:.5"':`onclick="addSearchResult(this,'journals',${addTargetGroup},${JSON.stringify(entity).replace(/"/g,'&quot;')})"`}>${added?t('added'):t('add')}</button></div>`;
+      }
+    }).join('')+'</div>';
+  }catch(e){resultsDiv.innerHTML=`<p style="color:var(--danger);font-size:11px;padding:4px 0">${t('fetchErr')}${esc(e.message)}</p>`}
+}
+function addSearchResult(btn,type,gi,entity){addEntityToGroup(type,gi,entity);btn.textContent=t('added');btn.disabled=true;btn.style.opacity='.5'}
+
+// ════════════════════════════════════════════════════════════════
+// RSS URL EDIT
+// ════════════════════════════════════════════════════════════════
+function editRssUrl(type,gi,ei){
+  const g=getGroups(type);const item=g[gi].items[ei];const currentUrl=item.rssUrl||'';
+  const val=prompt(`Edit RSS URL for "${item.name}"`,currentUrl);
+  if(val===null)return;item.rssUrl=val.trim()||undefined;setGroups(type,g);renderJournalGroups();
+  toast(val.trim()?'RSS URL updated':'RSS URL reset to default');
+}
+
+// ════════════════════════════════════════════════════════════════
+// BADGES & UTILS
+// ════════════════════════════════════════════════════════════════
+function updateBadges(){
+  const fb=document.getElementById('feedBadge'),sb=document.getElementById('scholarBadge'),jb=document.getElementById('journalBadge');
+  fb.textContent=works.length;fb.style.display=works.length>0?'':'none';
+  const sc=allScholars().length;sb.textContent=sc;sb.style.display=sc>0?'':'none';
+  const jc=allJournals().length;jb.textContent=jc;jb.style.display=jc>0?'':'none';
+}
+function esc(s){if(typeof s!=='string')return '';const d=document.createElement('div');d.textContent=s;return d.innerHTML.replace(/'/g,'&#39;').replace(/"/g,'&quot;')}
+function toast(msg){const c=document.getElementById('toastContainer');const el=document.createElement('div');el.className='toast';el.textContent=msg;c.appendChild(el);setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .3s'},2500);setTimeout(()=>el.remove(),2900)}
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebarOverlay').classList.toggle('open')}
+
+// ════════════════════════════════════════════════════════════════
+// DATA MIGRATION from v2
+// ════════════════════════════════════════════════════════════════
+(function migrate(){
+  if(localStorage.getItem('sp3_sgroups'))return;
+  const oldS=JSON.parse(localStorage.getItem('sp_scholars')||'[]');const oldJ=JSON.parse(localStorage.getItem('sp_journals')||'[]');
+  const oldW=JSON.parse(localStorage.getItem('sp_works')||'[]');const oldR=JSON.parse(localStorage.getItem('sp_read')||'[]');const oldSt=JSON.parse(localStorage.getItem('sp_star')||'[]');
+  if(oldS.length||oldJ.length){scholarGroups=[{name:'默认',items:oldS.map(s=>({...s,type:'openalex'}))}];journalGroups=[{name:'默认',items:oldJ.map(j=>({...j,type:j.type||'openalex'}))}];works=oldW;readSet=new Set(oldR);starSet=new Set(oldSt);save()}
+})();
+
+// ════════════════════════════════════════════════════════════════
+// SETTINGS: PROXY
+// ════════════════════════════════════════════════════════════════
+function loadProxyUrl(){const v=localStorage.getItem('sp3_proxy')||'';const el=document.getElementById('proxyUrlInput');if(el)el.value=v}
+function saveProxyUrl(){const v=document.getElementById('proxyUrlInput').value.trim();localStorage.setItem('sp3_proxy',v);document.getElementById('proxyStatus').textContent=v?'✅ Saved':'✅ Cleared';setTimeout(()=>{document.getElementById('proxyStatus').textContent=''},3000)}
+async function testProxy(){
+  const v=document.getElementById('proxyUrlInput').value.trim();const statusEl=document.getElementById('proxyStatus');
+  if(!v){statusEl.textContent='⚠ Enter a proxy URL first';return}statusEl.textContent='Testing...';
+  try{const r=await fetch(v+encodeURIComponent('https://navi.cnki.net/knavi/rss/SHEH'),{signal:AbortSignal.timeout(10000)});
+    if(!r.ok){statusEl.textContent=`❌ HTTP ${r.status}`;return}const txt=await r.text();
+    if(txt.includes('<item')||txt.includes('<entry')){statusEl.textContent='✅ Success!';statusEl.style.color='var(--accent)'}
+    else{statusEl.textContent='⚠ Connected but no RSS data';statusEl.style.color='var(--star)'}
+  }catch(e){statusEl.textContent=`❌ ${e.message}`;statusEl.style.color='var(--danger)'}
+  setTimeout(()=>{statusEl.style.color=''},5000);
+}
+
+// ════════════════════════════════════════════════════════════════
+// IMPORT — Generalized (BibTeX, RIS, CSV, Lines, File Upload)
+// ════════════════════════════════════════════════════════════════
+function doImport(){
+  const txt=document.getElementById('importTextarea').value.trim();
+  const sourceName=document.getElementById('importSourceName').value.trim();
+  const format=document.getElementById('importFormat').value;
+  const statusEl=document.getElementById('importStatus');
+  if(!txt){statusEl.textContent=lang==='zh'?'请粘贴内容':'Please paste content';return}
+  let imported=[];
+  const fmt=format==='auto'?detectFormat(txt):format;
+  if(fmt==='bibtex')imported=parseBibtex(txt,sourceName);
+  else if(fmt==='ris')imported=parseRIS(txt,sourceName);
+  else if(fmt==='csv')imported=parseCSV(txt,sourceName);
+  else imported=parseLines(txt,sourceName);
+  if(!imported.length){statusEl.textContent=lang==='zh'?'未识别到文献':'No articles found';return}
+  const map=new Map();works.forEach(w=>map.set(w.id,w));imported.forEach(w=>map.set(w.id,w));
+  works=[...map.values()].sort((a,b)=>(b.date||'').localeCompare(a.date||''));save();
+  statusEl.textContent=`✅ ${lang==='zh'?'已导入':'Imported'} ${imported.length} ${t('articles')}`;renderAll();
+}
+function detectFormat(txt){
+  if(txt.match(/@\w+\{/))return 'bibtex';
+  if(txt.match(/^TY\s+-\s+/m))return 'ris';
+  const firstLine=txt.split('\n')[0];if(firstLine.includes('\t')||(firstLine.split(',').length>=3&&firstLine.toLowerCase().includes('title')))return 'csv';
+  return 'lines';
+}
+function handleImportFile(ev){
+  const file=ev.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){document.getElementById('importTextarea').value=e.target.result;
+    const ext=file.name.split('.').pop().toLowerCase();
+    const fmtMap={bib:'bibtex',ris:'ris',csv:'csv',tsv:'csv',txt:'auto'};
+    if(fmtMap[ext])document.getElementById('importFormat').value=fmtMap[ext];
+  };reader.readAsText(file);ev.target.value='';
+}
+function parseLines(txt,sourceName){
+  return txt.split('\n').map(l=>l.trim()).filter(l=>l&&l.length>2).map((line,i)=>{
+    let title=line,authors=[];const slashIdx=line.indexOf('/');
+    if(slashIdx>3){title=line.slice(0,slashIdx).trim();authors=line.slice(slashIdx+1).split(/[,;，；、]/).map(a=>a.trim()).filter(a=>a&&a.length<30)}
+    if(!authors.length){const parts=line.split(/\s{2,}/);if(parts.length>=2){title=parts[0].trim();authors=parts.slice(1).join(',').split(/[,;，；、]/).map(a=>a.trim()).filter(a=>a&&a.length<30)}}
+    title=title.replace(/^\d+[\.\、\s]+/,'').trim();if(!title)return null;
+    return{id:'import:'+Date.now()+':'+i,title,authors,date:'',year:new Date().getFullYear(),doi:null,doiUrl:null,abstract:null,source:sourceName||'Import',citedBy:0,oaUrl:'',topics:[],type:'import'};
+  }).filter(Boolean);
+}
+function parseBibtex(txt,sourceName){
+  const entries=[];const regex=/@\w+\{[^@]+/g;let match;
+  while((match=regex.exec(txt))!==null){
+    const block=match[0];const getField=(name)=>{const m=block.match(new RegExp(name+'\\s*=\\s*[{"]([^}"]+)[}"]'));return m?m[1].trim():''};
+    const title=getField('title');if(!title)continue;
+    const authorStr=getField('author');const authors=authorStr?authorStr.split(/\s+and\s+|[;；]/).map(a=>a.trim()).filter(Boolean):[];
+    const year=getField('year');const doi=getField('doi');const journal=getField('journal');const abstract=getField('abstract');
+    entries.push({id:'bib:'+(doi||Date.now()+':'+entries.length),title,authors,date:year?year+'-01-01':'',year:parseInt(year)||'',doi:doi||null,doiUrl:doi?'https://doi.org/'+doi:null,abstract:abstract||null,source:sourceName||journal||'BibTeX',citedBy:0,oaUrl:doi?'https://doi.org/'+doi:'',topics:[],type:'import'});
+  }return entries;
+}
+function parseRIS(txt,sourceName){
+  const entries=[];const blocks=txt.split(/^ER\s+-/m);
+  blocks.forEach((block,bi)=>{
+    const get=(tag)=>{const m=block.match(new RegExp('^'+tag+'\\s+-\\s+(.+)$','m'));return m?m[1].trim():''};
+    const getAll=(tag)=>{const r=[];const re=new RegExp('^'+tag+'\\s+-\\s+(.+)$','gm');let m;while((m=re.exec(block)))r.push(m[1].trim());return r};
+    const title=get('TI')||get('T1');if(!title)return;
+    const authors=getAll('AU').concat(getAll('A1'));const year=get('PY')||get('Y1');const doi=get('DO');
+    const journal=get('JO')||get('JF')||get('T2');const abstract=get('AB')||get('N2');
+    entries.push({id:'ris:'+(doi||Date.now()+':'+bi),title,authors,date:year?year.slice(0,4)+'-01-01':'',year:parseInt(year)||'',doi:doi||null,doiUrl:doi?'https://doi.org/'+doi:null,abstract:abstract||null,source:sourceName||journal||'RIS Import',citedBy:0,oaUrl:doi?'https://doi.org/'+doi:'',topics:[],type:'import'});
+  });return entries;
+}
+function parseCSV(txt,sourceName){
+  const lines=txt.split('\n').map(l=>l.trim()).filter(Boolean);if(lines.length<2)return[];
+  const sep=lines[0].includes('\t')?'\t':',';
+  const headers=lines[0].split(sep).map(h=>h.replace(/^"|"$/g,'').trim().toLowerCase());
+  const titleIdx=headers.findIndex(h=>h.includes('title'));
+  const authorIdx=headers.findIndex(h=>h.includes('author'));
+  const yearIdx=headers.findIndex(h=>h.includes('year'));
+  const doiIdx=headers.findIndex(h=>h.includes('doi'));
+  if(titleIdx<0)return parseLines(txt,sourceName);
+  return lines.slice(1).map((line,i)=>{
+    const cols=line.split(sep).map(c=>c.replace(/^"|"$/g,'').trim());
+    const title=cols[titleIdx];if(!title)return null;
+    const authors=authorIdx>=0&&cols[authorIdx]?cols[authorIdx].split(/[;；,，]/).map(a=>a.trim()).filter(Boolean):[];
+    const year=yearIdx>=0?parseInt(cols[yearIdx]):'';const doi=doiIdx>=0?cols[doiIdx]:'';
+    return{id:'csv:'+Date.now()+':'+i,title,authors,date:year?year+'-01-01':'',year:year||'',doi:doi||null,doiUrl:doi?'https://doi.org/'+doi:null,abstract:null,source:sourceName||'CSV Import',citedBy:0,oaUrl:doi?'https://doi.org/'+doi:'',topics:[],type:'import'};
+  }).filter(Boolean);
+}
+
+// ════════════════════════════════════════════════════════════════
+// DATA EXPORT / IMPORT / CLEAR
+// ════════════════════════════════════════════════════════════════
+function exportData(){
+  const data={version:4,exportDate:new Date().toISOString(),scholarGroups,journalGroups,works,readSet:[...readSet],starSet:[...starSet],proxy:localStorage.getItem('sp3_proxy')||'',lang,fontSize,yearRange,pageSize};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=`scholarpulse-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);toast('Data exported');
+}
+function importDataFile(ev){
+  const file=ev.target.files[0];if(!file)return;const reader=new FileReader();
+  reader.onload=function(e){try{const data=JSON.parse(e.target.result);
+    if(data.scholarGroups)scholarGroups=data.scholarGroups;if(data.journalGroups)journalGroups=data.journalGroups;
+    if(data.works)works=data.works;if(data.readSet)readSet=new Set(data.readSet);if(data.starSet)starSet=new Set(data.starSet);
+    if(data.proxy)localStorage.setItem('sp3_proxy',data.proxy);save();renderAll();renderScholarGroups();renderJournalGroups();loadProxyUrl();
+    toast(`Imported: ${works.length} works, ${allScholars().length} scholars, ${allJournals().length} journals`);
+  }catch(err){toast('Import failed: '+err.message)}};reader.readAsText(file);ev.target.value='';
+}
+function clearAllData(){
+  if(!confirm(t('clearConfirm')))return;
+  localStorage.removeItem('sp3_sgroups');localStorage.removeItem('sp3_jgroups');localStorage.removeItem('sp3_works');localStorage.removeItem('sp3_read');localStorage.removeItem('sp3_star');
+  scholarGroups=[{name:'默认',items:[]}];journalGroups=[{name:'默认',items:[]}];works=[];readSet=new Set();starSet=new Set();
+  save();renderAll();renderScholarGroups();renderJournalGroups();toast('All data cleared');
+}
+
+// ════════════════════════════════════════════════════════════════
+// FONT SIZE
+// ════════════════════════════════════════════════════════════════
+let fontSize=parseInt(localStorage.getItem('sp3_fs'))||14;
+function applyFontSize(){document.documentElement.style.setProperty('--fs',fontSize+'px');const el=document.getElementById('fsDisplay');if(el)el.textContent=fontSize+'px'}
+function changeFontSize(delta){fontSize=Math.max(11,Math.min(20,fontSize+delta));localStorage.setItem('sp3_fs',fontSize);applyFontSize()}
+applyFontSize();
+
+// INIT
+document.getElementById('langToggleBtn').textContent=lang==='zh'?'EN':'中';
+applyI18n();
+renderAll();renderScholarGroups();renderJournalGroups();
+</script>
+</body>
+</html>
