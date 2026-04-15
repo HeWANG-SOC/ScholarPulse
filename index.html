@@ -216,7 +216,6 @@ input,select{font-family:var(--font-b)}
   <button class="tab active" data-tab="feed" onclick="switchTab('feed')">📄 <span data-i="feedTab">文献动态</span> <span class="badge" id="feedBadge" style="display:none">0</span></button>
   <button class="tab" data-tab="scholars" onclick="switchTab('scholars')">👤 <span data-i="scholarsTab">关注学者</span> <span class="badge" id="scholarBadge" style="display:none">0</span></button>
   <button class="tab" data-tab="journals" onclick="switchTab('journals')">📖 <span data-i="journalsTab">关注期刊</span> <span class="badge" id="journalBadge" style="display:none">0</span></button>
-  <button class="tab" data-tab="import" onclick="switchTab('import')">📥 <span data-i="importTab">导入</span></button>
   <button class="tab" data-tab="settings" onclick="switchTab('settings')">⚙ <span data-i="settingsTab">设置</span></button>
 </nav></div>
 
@@ -265,7 +264,6 @@ input,select{font-family:var(--font-b)}
         </div>
       </div>
       <div id="scholarAddPanel" style="display:none"></div>
-      <div id="scholarPresets"></div>
       <div id="scholarGroups"></div>
     </div>
     <div class="tab-content" id="tab-journals">
@@ -280,18 +278,30 @@ input,select{font-family:var(--font-b)}
         </div>
       </div>
       <div id="journalAddPanel" style="display:none"></div>
-      <div id="journalPresets"></div>
       <div id="journalGroups"></div>
     </div>
-    <!-- Import -->
-    <div class="tab-content" id="tab-import">
+    <!-- Settings -->
+    <div class="tab-content" id="tab-settings">
       <div class="section-header">
         <div style="display:flex;align-items:baseline;gap:4px">
-          <h2 class="section-title" data-i-text="importTitle">导入文献</h2>
+          <h2 class="section-title" data-i-text="settingsTitle">设置</h2>
         </div>
       </div>
+      <!-- 1. Data management -->
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px">
-        <p style="font-size:.92em;color:var(--text-2);margin-bottom:10px" id="importDesc"></p>
+        <h3 style="font-size:1.05em;font-weight:600;margin-bottom:8px" data-i-text="dataManagement">数据管理</h3>
+        <p style="font-size:.88em;color:var(--text-2);margin-bottom:10px" data-i-text="dataManagementDesc">所有数据保存在浏览器本地。建议定期导出备份，清理浏览器数据或换设备后可通过导入恢复。</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn" onclick="exportData()" data-i-text="exportBtn">📦 导出全部数据</button>
+          <button class="btn" onclick="document.getElementById('importFileInput').click()" data-i-text="importBackup">📂 导入数据备份</button>
+          <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importDataFile(event)">
+          <button class="btn btn-danger" onclick="clearAllData()" data-i-text="clearAll">🗑 清除全部数据</button>
+        </div>
+      </div>
+      <!-- 2. Import articles -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px">
+        <h3 style="font-size:1.05em;font-weight:600;margin-bottom:8px" data-i-text="importTitle">导入文献</h3>
+        <p style="font-size:.88em;color:var(--text-2);margin-bottom:10px" id="importDesc"></p>
         <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
           <div style="flex:1;min-width:150px">
             <label style="font-size:.85em;font-weight:500" data-i-text="importSourceLabel">来源名称（可选）：</label>
@@ -308,7 +318,7 @@ input,select{font-family:var(--font-b)}
             </select>
           </div>
         </div>
-        <textarea id="importTextarea" style="width:100%;height:200px;padding:10px;border:1px solid var(--border);border-radius:var(--r);font-size:.88em;line-height:1.6;resize:vertical;outline:none;font-family:var(--font-b)" placeholder=""></textarea>
+        <textarea id="importTextarea" style="width:100%;height:160px;padding:10px;border:1px solid var(--border);border-radius:var(--r);font-size:.88em;line-height:1.6;resize:vertical;outline:none;font-family:var(--font-b)" placeholder=""></textarea>
         <div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap">
           <button class="btn btn-primary" onclick="doImport()" data-i-text="importBtn">导入</button>
           <button class="btn" onclick="document.getElementById('importFileUpload').click()" data-i-text="importFileBtn">📂 上传文件</button>
@@ -316,79 +326,16 @@ input,select{font-family:var(--font-b)}
           <span id="importStatus" style="font-size:.85em;color:var(--text-3)"></span>
         </div>
       </div>
-    </div>
-    <!-- Settings -->
-    <div class="tab-content" id="tab-settings">
-      <div class="section-header">
-        <div style="display:flex;align-items:baseline;gap:4px">
-          <h2 class="section-title" data-i-text="settingsTitle">设置</h2>
-        </div>
-      </div>
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px">
-        <h3 style="font-size:1.05em;font-weight:600;margin-bottom:8px" data-i-text="proxyTitle">CNKI RSS 代理地址</h3>
-        <p style="font-size:.88em;color:var(--text-2);margin-bottom:10px;line-height:1.6" id="proxySettingDesc"></p>
-        <input id="proxyUrlInput" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--r);font-size:.92em;outline:none;font-family:monospace" placeholder="https://your-worker.your-name.workers.dev/?url=">
-        <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
-          <button class="btn btn-primary" onclick="saveProxyUrl()" data-i-text="proxySave">保存</button>
-          <button class="btn" onclick="testProxy()" data-i-text="proxyTest">测试连接</button>
-          <span id="proxyStatus" style="font-size:.85em;color:var(--text-3)"></span>
-        </div>
-        <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border-light)">
-          <details>
-            <summary style="font-size:.92em;font-weight:500;cursor:pointer;color:var(--accent)">📖 如何部署 Cloudflare Worker（5分钟教程）</summary>
-            <div style="font-size:.85em;color:var(--text-2);line-height:1.8;margin-top:8px">
-              <p><strong>Step 1:</strong> <a href="https://dash.cloudflare.com/sign-up" target="_blank">Sign up for Cloudflare</a> (free)</p>
-              <p><strong>Step 2:</strong> Go to <a href="https://dash.cloudflare.com/?to=/:account/workers-and-pages" target="_blank">Workers & Pages</a></p>
-              <p><strong>Step 3:</strong> Click <strong>Create → Create Worker</strong>, name it (e.g. <code>rss-proxy</code>), click Deploy</p>
-              <p><strong>Step 4:</strong> Click <strong>Edit Code</strong>, replace with:</p>
-              <pre style="background:var(--surface-alt);padding:10px;border-radius:var(--r);overflow-x:auto;font-size:.92em;margin:8px 0;border:1px solid var(--border-light)"><code>export default {
-  async fetch(request) {
-    const url = new URL(request.url);
-    const target = url.searchParams.get('url');
-    if (!target) return new Response('Missing url', {status:400});
-    const allowed = ['navi.cnki.net','nxgp.cnki.net','rss.cnki.net'];
-    try {
-      const t = new URL(target);
-      if (!allowed.some(d => t.hostname === d))
-        return new Response('Domain not allowed', {status:403});
-    } catch { return new Response('Invalid url', {status:400}); }
-    try {
-      const r = await fetch(target, {
-        headers: {'User-Agent':'Mozilla/5.0'}
-      });
-      const body = await r.text();
-      return new Response(body, {
-        headers: {
-          'Access-Control-Allow-Origin':'*',
-          'Content-Type': r.headers.get('Content-Type')||'text/xml',
-          'Cache-Control': 'public, max-age=3600'
-        }
-      });
-    } catch(e) {
-      return new Response('Fetch error: '+e.message, {status:502});
-    }
-  }
-}</code></pre>
-              <p><strong>Step 5:</strong> Click <strong>Deploy</strong></p>
-              <p><strong>Step 6:</strong> Copy your Worker URL and paste above as: <code>https://rss-proxy.yourname.workers.dev/?url=</code></p>
-            </div>
-          </details>
-        </div>
-      </div>
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px">
-        <h3 style="font-size:1.05em;font-weight:600;margin-bottom:8px" data-i-text="dataManagement">数据管理</h3>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn" onclick="exportData()" data-i-text="exportBtn">📦 导出全部数据</button>
-          <button class="btn" onclick="document.getElementById('importFileInput').click()" data-i-text="importBackup">📂 导入数据备份</button>
-          <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importDataFile(event)">
-          <button class="btn btn-danger" onclick="clearAllData()" data-i-text="clearAll">🗑 清除全部数据</button>
-        </div>
+      <!-- 3. Guidebook -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px" id="guidebookSection">
+        <h3 style="font-size:1.05em;font-weight:600;margin-bottom:10px" data-i-text="guidebookTitle">📖 使用指南</h3>
+        <div style="font-size:.9em;color:var(--text-2);line-height:1.8" id="guidebookContent"></div>
       </div>
     </div>
   </div>
 </div>
 <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
-<footer class="footer">Data: <a href="https://openalex.org" target="_blank">OpenAlex</a> + <a href="https://navi.cnki.net/knavi/" target="_blank">CNKI RSS</a> · <span data-i-text="footerText">数据保存在浏览器本地</span></footer>
+<footer class="footer">Data: <a href="https://openalex.org" target="_blank">OpenAlex</a> · <span data-i-text="footerText">数据保存在浏览器本地</span></footer>
 <div id="toastContainer"></div>
 
 <script>
@@ -453,6 +400,14 @@ const I={
     scholarsSuffix:'位学者',journalsSuffix:'本期刊',sourcesFailed:'个源失败',
     confirmRemoveEntity:'确定移除「{name}」？',confirmRemoveGroup:'确定删除分组「{name}」及其中的 {n} 个项目？',
     collapse:'收起',expand:'展开',
+    dataManagementDesc:'所有数据保存在浏览器本地。建议定期导出备份，清理浏览器数据或换设备后可通过导入恢复。',
+    guidebookTitle:'📖 使用指南',
+    guidebook:`<p style="margin-bottom:10px;padding:8px 12px;background:var(--accent-light);border-radius:6px;color:var(--accent);font-weight:500">⚠ 重要提示：所有数据保存在浏览器本地存储中。清除浏览器数据、更换浏览器或设备后数据将丢失。请定期点击上方「导出全部数据」进行备份，以便随时恢复。</p>
+<p><strong>📄 文献动态（Feed）</strong><br>显示所有已关注学者和期刊的最新文献。顶部工具栏可按时间、被引量、标题排序，按语言筛选，以及切换已读/星标显示。左侧边栏支持按主题、期刊、作者和分组筛选。点击文献卡片可展开查看摘要和链接。</p>
+<p style="margin-top:8px"><strong>👤 关注学者（Scholars）</strong><br>通过「搜索添加」在 OpenAlex 数据库中搜索学者并添加到分组。也可通过「手动添加」(✎) 直接输入学者信息。支持拖拽排序、分组管理、点击展开查看已存储文献。数据来源为 OpenAlex，覆盖全球主要学术出版物。</p>
+<p style="margin-top:8px"><strong>📖 关注期刊（Journals）</strong><br>添加方式同学者。支持 OpenAlex（英文期刊为主，也收录部分中文期刊）和 CNKI RSS（中文期刊，输入知网期刊代码）两种数据源。可重命名期刊显示名称。CNKI RSS 仅能获取最近 1-2 期，如需更完整数据建议通过 OpenAlex 添加。</p>
+<p style="margin-top:8px"><strong>↻ 刷新数据</strong><br>点击顶部「刷新数据」按钮拉取最新文献。右侧下拉菜单可选择数据覆盖的年份范围（1-15年），范围越大获取的文献越多但耗时也越长。</p>
+<p style="margin-top:8px"><strong>⚙ 设置</strong><br>「数据管理」：导出完整备份（JSON 格式）、导入备份文件、清除所有数据。<br>「导入文献」：支持粘贴或上传 BibTeX、RIS、CSV/TSV、逐行文本格式的文献数据，手动补充未被 API 覆盖的文献。</p>`,
   },
   en:{
     refresh:'Refresh',refreshing:'Loading...',
@@ -494,6 +449,14 @@ const I={
     scholarsSuffix:' scholars',journalsSuffix:' journals',sourcesFailed:' sources failed',
     confirmRemoveEntity:'Remove "{name}"?',confirmRemoveGroup:'Delete group "{name}" with {n} items?',
     collapse:'Collapse',expand:'Expand',
+    dataManagementDesc:'All data is stored locally in your browser. Export backups regularly — data will be lost if you clear browser data or switch devices.',
+    guidebookTitle:'📖 User Guide',
+    guidebook:`<p style="margin-bottom:10px;padding:8px 12px;background:var(--accent-light);border-radius:6px;color:var(--accent);font-weight:500">⚠ Important: All data is stored in your browser's local storage. Clearing browser data, switching browsers, or switching devices will result in data loss. Please regularly click "Export All Data" above to create backups.</p>
+<p><strong>📄 Feed</strong><br>Displays the latest articles from all followed scholars and journals. Use the toolbar to sort by date, citations, or title, filter by language, and toggle read/starred visibility. The left sidebar allows filtering by topic, journal, author, and group. Click an article card to expand its abstract and links.</p>
+<p style="margin-top:8px"><strong>👤 Scholars</strong><br>Use "Search & Add" to find scholars in the OpenAlex database and add them to groups. You can also use "Manual Add" (✎) to enter scholar info directly. Supports drag-and-drop reordering, group management, and click-to-expand to view stored articles. Data sourced from OpenAlex, covering major global academic publications.</p>
+<p style="margin-top:8px"><strong>📖 Journals</strong><br>Same adding methods as scholars. Supports OpenAlex (primarily English journals, also indexes some Chinese journals) and CNKI RSS (Chinese journals — enter the CNKI journal code). Journal display names can be renamed. CNKI RSS only provides the latest 1–2 issues; for fuller coverage, add via OpenAlex instead.</p>
+<p style="margin-top:8px"><strong>↻ Refresh</strong><br>Click the "Refresh" button in the header to fetch the latest articles. The dropdown next to it sets the year range (1–15 years) — larger ranges fetch more articles but take longer.</p>
+<p style="margin-top:8px"><strong>⚙ Settings</strong><br>"Data Management": Export a full backup (JSON), import a backup file, or clear all data.<br>"Import Articles": Paste or upload BibTeX, RIS, CSV/TSV, or line-by-line text to manually add articles not covered by the API.</p>`,
   }
 };
 function t(key){return I[lang][key]||I.zh[key]||key}
@@ -524,7 +487,8 @@ function applyI18n(){
   document.getElementById('importSourceName').placeholder=t('importSourcePlaceholder');
   document.getElementById('importTextarea').placeholder=t('importPlaceholder');
   document.getElementById('importDesc').textContent=t('importDesc');
-  document.getElementById('proxySettingDesc').innerHTML=t('proxyDesc')+'<br>Format: <code>https://your-worker.your-name.workers.dev/?url=</code>';
+  // Guidebook
+  const gb=document.getElementById('guidebookContent');if(gb)gb.innerHTML=t('guidebook');
   // Year range select
   const ys=document.getElementById('yearRangeSelect');
   if(ys){const opts=ys.options;opts[0].text=t('yr1');opts[1].text=t('yr2');opts[2].text=t('yr3');opts[3].text=t('yr5');opts[4].text=t('yr10');opts[5].text=t('yr15')}
@@ -557,28 +521,7 @@ document.getElementById('yearRangeSelect').value=yearRange;
 // ════════════════════════════════════════════════════════════════
 // PRESETS
 // ════════════════════════════════════════════════════════════════
-const PRESET_SCHOLARS=[
-  {id:'https://openalex.org/A5006703857',name:'Paul DiMaggio',inst:'New York University',type:'openalex'},
-  {id:'https://openalex.org/A5058560108',name:'Andrei Boutyline',inst:'University of Michigan',type:'openalex'},
-  {id:'https://openalex.org/A5091701498',name:'Michèle Lamont',inst:'Harvard University',type:'openalex'},
-  {id:'https://openalex.org/A5028398622',name:'Omar Lizardo',inst:'UCLA',type:'openalex'},
-  {id:'https://openalex.org/A5068489637',name:'Eviatar Zerubavel',inst:'Rutgers University',type:'openalex'},
-];
-const PRESET_JOURNALS=[
-  {id:'https://openalex.org/S15545607',name:'American Sociological Review',type:'openalex'},
-  {id:'https://openalex.org/S40122043',name:'American Journal of Sociology',type:'openalex'},
-  {id:'https://openalex.org/S138832282',name:'Annual Review of Sociology',type:'openalex'},
-  {id:'https://openalex.org/S86339819',name:'Poetics',type:'openalex'},
-  {id:'https://openalex.org/S116820498',name:'Social Forces',type:'openalex'},
-];
-const PRESET_CN_JOURNALS=[
-  {id:'rss:SHXJ',name:'社会学研究',type:'cnki_rss',rssCode:'SHXJ'},
-  {id:'rss:SHEH',name:'社会',type:'cnki_rss',rssCode:'SHEH'},
-  {id:'rss:ZSHK',name:'中国社会科学',type:'cnki_rss',rssCode:'ZSHK'},
-  {id:'rss:KFSD',name:'开放时代',type:'cnki_rss',rssCode:'KFSD'},
-  {id:'rss:RKYZ',name:'人口研究',type:'cnki_rss',rssCode:'RKYZ'},
-  {id:'rss:SHLL',name:'社会学评论',type:'cnki_rss',rssCode:'SHLL'},
-];
+// PRESETS removed — users add manually or via search
 
 // ════════════════════════════════════════════════════════════════
 // API
@@ -687,8 +630,9 @@ async function fetchAll(){
   document.getElementById('progressWrap').style.display='block';
   document.querySelector('.progress-fill').style.width='0%';
   const cutoffYear=new Date().getFullYear()-yearRange;
-  // Scale per_page for larger year ranges
-  const perPage=yearRange<=3?25:yearRange<=5?50:50;
+  // Scale per_page and max pages for year ranges
+  const perPage=200; // OpenAlex max per_page
+  const maxPages=yearRange<=2?1:yearRange<=5?3:5; // paginate for larger ranges
   const map=new Map();let done=0,errors=[];
   const oaScholars=scholars.filter(s=>s.type==='openalex');
   const oaJournals=journals.filter(j=>j.type==='openalex');
@@ -702,26 +646,30 @@ async function fetchAll(){
     document.getElementById('progressText').textContent=`${label}  (${done}/${totalTasks})`;
   }
 
+  // Fetch all pages for an OpenAlex filter
+  async function oaFetchAll(filter,label){
+    try{
+      let page=1,fetched=0;
+      while(page<=maxPages){
+        const d=await oaFetch(`/works?filter=${filter},publication_year:>${cutoffYear}&sort=publication_date:desc&per_page=${perPage}&page=${page}`);
+        const results=d.results||[];
+        results.forEach(w=>map.set(w.id,normalizeWork(w)));
+        fetched+=results.length;
+        if(results.length<perPage)break; // no more pages
+        page++;
+      }
+    }catch(e){console.warn('Fetch error:',label,e);errors.push(label)}
+    updateProgress(label);
+  }
+
   try{
     // Phase 1: OpenAlex requests
     const oaTasks=[];
     oaScholars.forEach(s=>{
-      oaTasks.push(async()=>{
-        try{
-          const d=await oaFetch(`/works?filter=authorships.author.id:${s.id},publication_year:>${cutoffYear}&sort=publication_date:desc&per_page=${perPage}`);
-          (d.results||[]).forEach(w=>map.set(w.id,normalizeWork(w)));
-        }catch(e){console.warn('Scholar fetch error:',s.name,e);errors.push(s.name)}
-        updateProgress(s.name);
-      });
+      oaTasks.push(()=>oaFetchAll(`authorships.author.id:${s.id}`,s.name));
     });
     oaJournals.forEach(j=>{
-      oaTasks.push(async()=>{
-        try{
-          const d=await oaFetch(`/works?filter=primary_location.source.id:${j.id},publication_year:>${cutoffYear}&sort=publication_date:desc&per_page=${perPage}`);
-          (d.results||[]).forEach(w=>map.set(w.id,normalizeWork(w)));
-        }catch(e){console.warn('Journal fetch error:',j.name,e);errors.push(j.name)}
-        updateProgress(j.name);
-      });
+      oaTasks.push(()=>oaFetchAll(`primary_location.source.id:${j.id}`,j.name));
     });
     if(oaTasks.length)await parallelLimit(oaTasks,5);
 
@@ -773,7 +721,6 @@ function switchTab(name){
   if(name==='scholars')renderScholarGroups();
   if(name==='journals')renderJournalGroups();
   if(name==='feed')renderAll();
-  if(name==='settings')loadProxyUrl();
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -782,19 +729,19 @@ function switchTab(name){
 function renderTopicFilter(){
   const c={};works.forEach(w=>(w.topics||[]).forEach(t=>{c[t]=(c[t]||0)+1}));
   const q=(document.getElementById('topicSearchInput').value||'').toLowerCase();
-  let e=Object.entries(c).sort((a,b)=>b[1]-a[1]);if(q)e=e.filter(([t])=>t.toLowerCase().includes(q));
+  let e=Object.entries(c).sort((a,b)=>a[0].localeCompare(b[0]));if(q)e=e.filter(([t])=>t.toLowerCase().includes(q));
   document.getElementById('topicList').innerHTML=e.slice(0,50).map(([t,n])=>`<label class="sb-check-item"><input type="checkbox" ${selectedTopics.has(t)?'checked':''} onchange="toggleFilter('topic','${esc(t)}')">${esc(t)}<span class="count">${n}</span></label>`).join('')||`<div style="font-size:11px;color:var(--text-3);padding:6px 0">${t('noData')}</div>`;
 }
 function renderJournalFilter(){
   const c={};works.forEach(w=>{if(w.source)c[w.source]=(c[w.source]||0)+1});
   const q=(document.getElementById('journalFilterSearch').value||'').toLowerCase();
-  let e=Object.entries(c).sort((a,b)=>b[1]-a[1]);if(q)e=e.filter(([s])=>s.toLowerCase().includes(q));
+  let e=Object.entries(c).sort((a,b)=>a[0].localeCompare(b[0]));if(q)e=e.filter(([s])=>s.toLowerCase().includes(q));
   document.getElementById('journalFilterList').innerHTML=e.map(([s,n])=>`<label class="sb-check-item"><input type="checkbox" ${selectedJournals.has(s)?'checked':''} onchange="toggleFilter('journal','${esc(s)}')">${esc(s)}<span class="count">${n}</span></label>`).join('')||`<div style="font-size:11px;color:var(--text-3);padding:6px 0">${t('noData')}</div>`;
 }
 function renderAuthorFilter(){
   const c={};works.forEach(w=>w.authors.forEach(a=>{c[a]=(c[a]||0)+1}));
   const q=(document.getElementById('authorFilterSearch').value||'').toLowerCase();
-  let e=Object.entries(c).sort((a,b)=>b[1]-a[1]);if(q)e=e.filter(([a])=>a.toLowerCase().includes(q));
+  let e=Object.entries(c).sort((a,b)=>a[0].localeCompare(b[0]));if(q)e=e.filter(([a])=>a.toLowerCase().includes(q));
   document.getElementById('authorFilterList').innerHTML=e.slice(0,60).map(([a,n])=>`<label class="sb-check-item"><input type="checkbox" ${selectedAuthors.has(a)?'checked':''} onchange="toggleFilter('author','${esc(a)}')">${esc(a)}<span class="count">${n}</span></label>`).join('')||`<div style="font-size:11px;color:var(--text-3);padding:6px 0">${t('noData')}</div>`;
 }
 function renderGroupFilter(){
@@ -1064,13 +1011,9 @@ function getEntityWorks(type,gi,ei){
 
 function renderScholarGroups(){
   const container=document.getElementById('scholarGroups');
-  const presets=document.getElementById('scholarPresets');
   const countEl=document.getElementById('scholarCount');
   const sc=allScholars().length;
   countEl.textContent=sc?`(${sc}${lang==='zh'?'位':''})`:'';
-  if(sc===0){
-    presets.innerHTML=`<div class="preset-section"><p class="preset-title">${t('presetScholar')}</p><div class="preset-list">${PRESET_SCHOLARS.map(p=>`<button class="preset-chip" onclick="addEntityToGroup('scholars',0,${JSON.stringify(p).replace(/"/g,'&quot;')})">&plus; ${esc(p.name)}</button>`).join('')}</div></div>`;
-  }else presets.innerHTML='';
   container.innerHTML=scholarGroups.map((g,gi)=>{
     const isCollapsed=collapsedGroups.has(`scholars:${gi}`);
     return `<div class="group" ondragover="onGroupDragOver(event)" ondragleave="onGroupDragLeave(event)" ondrop="onGroupDrop('scholars',${gi},event)">
@@ -1105,14 +1048,9 @@ function renderScholarGroups(){
 
 function renderJournalGroups(){
   const container=document.getElementById('journalGroups');
-  const presets=document.getElementById('journalPresets');
   const countEl=document.getElementById('journalCount');
   const jc=allJournals().length;
   countEl.textContent=jc?`(${jc}${lang==='zh'?'本':''})`:'';
-  if(jc===0){
-    presets.innerHTML=`<div class="preset-section"><p class="preset-title">${t('presetEnJournal')}</p><div class="preset-list">${PRESET_JOURNALS.map(p=>`<button class="preset-chip" onclick="addEntityToGroup('journals',0,${JSON.stringify(p).replace(/"/g,'&quot;')})">&plus; ${esc(p.name)}</button>`).join('')}</div></div>
-      <div class="preset-section" style="margin-top:8px"><p class="preset-title">${t('presetCnJournal')}</p><div class="preset-list">${PRESET_CN_JOURNALS.map(p=>`<button class="preset-chip" onclick="addEntityToGroup('journals',0,${JSON.stringify(p).replace(/"/g,'&quot;')})">&plus; ${esc(p.name)}</button>`).join('')}</div></div>`;
-  }else presets.innerHTML='';
   container.innerHTML=journalGroups.map((g,gi)=>{
     const isCollapsed=collapsedGroups.has(`journals:${gi}`);
     return `<div class="group" ondragover="onGroupDragOver(event)" ondragleave="onGroupDragLeave(event)" ondrop="onGroupDrop('journals',${gi},event)">
@@ -1223,8 +1161,7 @@ async function doSearch(type){
   const groupType=type==='scholar'?'scholars':'journals';
   try{
     if(type==='journal'&&journalSearchSource==='cnki_rss'){
-      const qLower=q.toLowerCase();let matches=PRESET_CN_JOURNALS.filter(p=>p.name.includes(q)||p.rssCode.toLowerCase().includes(qLower));
-      if(matches.length===0)matches=[{id:'rss:'+q.toUpperCase(),name:q.toUpperCase()+` (${lang==='zh'?'自定义代码':'custom code'})`,type:'cnki_rss',rssCode:q.toUpperCase()}];
+      const qLower=q.toUpperCase();let matches=[{id:'rss:'+qLower,name:q+` (CNKI RSS)`,type:'cnki_rss',rssCode:qLower}];
       resultsDiv.innerHTML='<div class="add-results">'+matches.map(r=>{
         const added=allJournals().find(j=>j.id===r.id);
         return `<div class="add-result"><div><div class="add-result-name">${esc(r.name)}</div><div class="add-result-meta">CNKI RSS · Code: ${esc(r.rssCode)}</div></div>
@@ -1291,18 +1228,7 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('op
 // ════════════════════════════════════════════════════════════════
 // SETTINGS: PROXY
 // ════════════════════════════════════════════════════════════════
-function loadProxyUrl(){const v=localStorage.getItem('sp3_proxy')||'';const el=document.getElementById('proxyUrlInput');if(el)el.value=v}
-function saveProxyUrl(){const v=document.getElementById('proxyUrlInput').value.trim();localStorage.setItem('sp3_proxy',v);document.getElementById('proxyStatus').textContent=v?'✅ Saved':'✅ Cleared';setTimeout(()=>{document.getElementById('proxyStatus').textContent=''},3000)}
-async function testProxy(){
-  const v=document.getElementById('proxyUrlInput').value.trim();const statusEl=document.getElementById('proxyStatus');
-  if(!v){statusEl.textContent='⚠ Enter a proxy URL first';return}statusEl.textContent='Testing...';
-  try{const r=await fetch(v+encodeURIComponent('https://navi.cnki.net/knavi/rss/SHEH'),{signal:AbortSignal.timeout(10000)});
-    if(!r.ok){statusEl.textContent=`❌ HTTP ${r.status}`;return}const txt=await r.text();
-    if(txt.includes('<item')||txt.includes('<entry')){statusEl.textContent='✅ Success!';statusEl.style.color='var(--accent)'}
-    else{statusEl.textContent='⚠ Connected but no RSS data';statusEl.style.color='var(--star)'}
-  }catch(e){statusEl.textContent=`❌ ${e.message}`;statusEl.style.color='var(--danger)'}
-  setTimeout(()=>{statusEl.style.color=''},5000);
-}
+// Proxy URL (kept in localStorage for CNKI RSS fallback, no UI needed)
 
 // ════════════════════════════════════════════════════════════════
 // IMPORT — Generalized (BibTeX, RIS, CSV, Lines, File Upload)
@@ -1400,7 +1326,7 @@ function importDataFile(ev){
   reader.onload=function(e){try{const data=JSON.parse(e.target.result);
     if(data.scholarGroups)scholarGroups=data.scholarGroups;if(data.journalGroups)journalGroups=data.journalGroups;
     if(data.works)works=data.works;if(data.readSet)readSet=new Set(data.readSet);if(data.starSet)starSet=new Set(data.starSet);
-    if(data.proxy)localStorage.setItem('sp3_proxy',data.proxy);save();renderAll();renderScholarGroups();renderJournalGroups();loadProxyUrl();
+    if(data.proxy)localStorage.setItem('sp3_proxy',data.proxy);save();renderAll();renderScholarGroups();renderJournalGroups();
     toast(`Imported: ${works.length} works, ${allScholars().length} scholars, ${allJournals().length} journals`);
   }catch(err){toast('Import failed: '+err.message)}};reader.readAsText(file);ev.target.value='';
 }
