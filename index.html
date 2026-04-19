@@ -184,10 +184,20 @@ input,select{font-family:var(--font-b)}
 .manual-add-form{margin-top:8px;padding:10px;background:var(--surface-alt);border:1px solid var(--border-light);border-radius:var(--r)}
 .manual-add-form input{width:100%;padding:6px 9px;border:1px solid var(--border);border-radius:5px;font-size:.92em;outline:none;margin-bottom:6px}
 .manual-add-form input:focus{border-color:var(--accent)}
+/* Update banner */
+.update-banner{position:fixed;top:0;left:0;right:0;z-index:1000;background:var(--accent);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:center;gap:12px;font-size:.9em;box-shadow:0 2px 8px rgba(0,0,0,.15);animation:slideDown .3s ease}
+.update-banner button{background:#fff;color:var(--accent);border:none;padding:5px 12px;border-radius:5px;font-weight:600;cursor:pointer;font-size:.92em}
+.update-banner button:hover{opacity:.9}
+.update-banner .close-x{background:transparent;color:#fff;font-size:1.2em;padding:0 4px}
+@keyframes slideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
 </style>
 </head>
 <body>
-
+<div id="updateBanner" class="update-banner" style="display:none">
+  <span id="updateBannerText" data-i-text="updateAvailable">🎉 有新版本可用</span>
+  <button onclick="applyUpdate()" data-i-text="updateApply">刷新升级</button>
+  <button class="close-x" onclick="dismissUpdate()" data-i-title="updateDismiss" title="稍后">✕</button>
+</div>
 <header class="header">
   <div class="header-inner">
     <div><div class="logo">ScholarPulse</div><div class="tagline">学术脉搏 · 追踪你关注的学者与期刊</div></div>
@@ -217,6 +227,7 @@ input,select{font-family:var(--font-b)}
   <button class="tab" data-tab="scholars" onclick="switchTab('scholars')">👤 <span data-i="scholarsTab">关注学者</span> <span class="badge" id="scholarBadge" style="display:none">0</span></button>
   <button class="tab" data-tab="journals" onclick="switchTab('journals')">📖 <span data-i="journalsTab">关注期刊</span> <span class="badge" id="journalBadge" style="display:none">0</span></button>
   <button class="tab" data-tab="settings" onclick="switchTab('settings')">⚙ <span data-i="settingsTab">设置</span></button>
+  <button class="tab" data-tab="guidebook" onclick="switchTab('guidebook')">📘 <span data-i="guidebookTab">使用指南</span></button>
 </nav></div>
 
 <div class="layout">
@@ -298,7 +309,61 @@ input,select{font-family:var(--font-b)}
           <button class="btn btn-danger" onclick="clearAllData()" data-i-text="clearAll">🗑 清除全部数据</button>
         </div>
       </div>
-      <!-- 2. Import articles -->
+      <!-- 2. Cloud Sync (GitHub Gist) -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px">
+        <h3 style="font-size:1.05em;font-weight:600;margin-bottom:8px" data-i-text="cloudSyncTitle">☁ 云存储同步</h3>
+        <p style="font-size:.88em;color:var(--text-2);margin-bottom:10px" data-i-text="cloudSyncDesc">通过 GitHub Gist 将数据自动备份到云端，防止浏览器数据丢失。需要 GitHub 账户和 Personal Access Token（仅需 gist 权限）。Token 和 Gist ID 仅保存在本地浏览器。</p>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px">
+          <div>
+            <label style="font-size:.85em;font-weight:500;display:block;margin-bottom:3px" data-i-text="cloudTokenLabel">GitHub Token</label>
+            <input type="password" id="cloudToken" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r);font-size:.92em;outline:none;font-family:monospace" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+            <div style="font-size:.78em;color:var(--text-3);margin-top:3px" id="cloudTokenHint"></div>
+          </div>
+          <div>
+            <label style="font-size:.85em;font-weight:500;display:block;margin-bottom:3px" data-i-text="cloudGistIdLabel">Gist ID（首次自动生成，可留空）</label>
+            <input id="cloudGistId" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r);font-size:.92em;outline:none;font-family:monospace" placeholder="">
+            <div style="font-size:.78em;color:var(--text-3);margin-top:3px" data-i-text="cloudGistIdHint">首次「上传到云端」会自动创建 Gist 并填入此处；在其他设备使用时手动填入此 ID 以恢复。</div>
+          </div>
+          <div>
+            <label style="font-size:.85em;font-weight:500;display:flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="checkbox" id="cloudAutoSync" style="accent-color:var(--accent)">
+              <span data-i-text="cloudAutoSyncLabel">开启自动同步（数据变动后 30 秒自动上传）</span>
+            </label>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-primary" onclick="saveCloudConfig()" data-i-text="cloudSaveBtn">保存配置</button>
+          <button class="btn btn-outline" onclick="cloudSyncUpload()" data-i-text="cloudUploadBtn">↑ 上传到云端</button>
+          <button class="btn btn-outline" onclick="cloudSyncDownload()" data-i-text="cloudDownloadBtn">↓ 从云端恢复</button>
+          <span id="cloudSyncStatus" style="font-size:.85em;color:var(--text-3)"></span>
+        </div>
+      </div>
+      <!-- 2b. Local File Sync (File System Access API) -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px" id="localSyncSection">
+        <h3 style="font-size:1.05em;font-weight:600;margin-bottom:8px" data-i-text="localSyncTitle">💾 本地文件自动保存</h3>
+        <p style="font-size:.88em;color:var(--text-2);margin-bottom:10px" data-i-text="localSyncDesc">选定一个本地 JSON 文件后，ScholarPulse 会自动把数据写入该文件——数据完全不经过任何服务器。把文件放到坚果云 / Dropbox / OneDrive 等同步盘的文件夹内，即可借助这些客户端实现跨设备同步。</p>
+        <div id="localSyncUnsupported" style="display:none;font-size:.88em;color:var(--danger);background:var(--surface-alt);padding:8px 12px;border-radius:var(--r);margin-bottom:10px" data-i-text="localSyncUnsupported">⚠ 当前浏览器不支持 File System Access API。请使用 Chrome / Edge / Opera，并通过 https:// 访问（GitHub Pages 即可）。</div>
+        <div id="localSyncSupported">
+          <div style="margin-bottom:10px;padding:8px 12px;background:var(--surface-alt);border-radius:var(--r);font-size:.88em">
+            <span style="color:var(--text-3)" data-i-text="localSyncFileLabel">当前文件：</span>
+            <span id="localSyncFileName" style="font-family:monospace;color:var(--text)" data-i-text="localSyncNone">未配置</span>
+          </div>
+          <div style="margin-bottom:10px">
+            <label style="font-size:.85em;font-weight:500;display:flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="checkbox" id="localAutoSync" style="accent-color:var(--accent)">
+              <span data-i-text="localAutoSyncLabel">开启自动保存（数据变动后 10 秒自动写入）</span>
+            </label>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <button class="btn btn-primary" onclick="localPickFile()" data-i-text="localPickBtn">选择本地文件</button>
+            <button class="btn btn-outline" onclick="localSyncWrite(true)" data-i-text="localWriteBtn">↑ 立即写入</button>
+            <button class="btn btn-outline" onclick="localSyncRead()" data-i-text="localReadBtn">↓ 从本地文件恢复</button>
+            <button class="btn btn-sm" onclick="localClearHandle()" data-i-text="localClearBtn">清除配置</button>
+            <span id="localSyncStatus" style="font-size:.85em;color:var(--text-3)"></span>
+          </div>
+        </div>
+      </div>
+      <!-- 3. Import articles -->
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px">
         <h3 style="font-size:1.05em;font-weight:600;margin-bottom:8px" data-i-text="importTitle">导入文献</h3>
         <p style="font-size:.88em;color:var(--text-2);margin-bottom:10px" id="importDesc"></p>
@@ -326,10 +391,25 @@ input,select{font-family:var(--font-b)}
           <span id="importStatus" style="font-size:.85em;color:var(--text-3)"></span>
         </div>
       </div>
-      <!-- 3. Guidebook -->
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px" id="guidebookSection">
-        <h3 style="font-size:1.05em;font-weight:600;margin-bottom:10px" data-i-text="guidebookTitle">📖 使用指南</h3>
-        <div style="font-size:.9em;color:var(--text-2);line-height:1.8" id="guidebookContent"></div>
+      <!-- 4. CNKI RSS Proxy -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px">
+        <h3 style="font-size:1.05em;font-weight:600;margin-bottom:8px" data-i-text="proxyTitle">🔗 CNKI RSS 代理（可选）</h3>
+        <p style="font-size:.88em;color:var(--text-2);margin-bottom:10px" data-i-text="proxyDesc">知网 RSS 在浏览器中受 CORS 限制，默认会尝试公共 CORS 代理（allorigins、corsproxy.io）。若不稳定可部署自己的 Cloudflare Worker 代理并填入。</p>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input id="proxyInput" style="flex:1;min-width:200px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r);font-size:.92em;outline:none;font-family:monospace" placeholder="https://your-worker.workers.dev/?url=">
+          <button class="btn btn-primary" onclick="saveProxy()" data-i-text="proxySave">保存</button>
+        </div>
+      </div>
+    </div>
+    <!-- Guidebook (separate tab) -->
+    <div class="tab-content" id="tab-guidebook">
+      <div class="section-header">
+        <div style="display:flex;align-items:baseline;gap:4px">
+          <h2 class="section-title" data-i-text="guidebookTitle">📘 使用指南</h2>
+        </div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px 26px;max-width:880px">
+        <div style="font-size:.95em;color:var(--text-2);line-height:1.85" id="guidebookContent"></div>
       </div>
     </div>
   </div>
@@ -361,8 +441,11 @@ let expandedEntity = null;
 let lang = localStorage.getItem('sp3_lang')||'zh';
 const I={
   zh:{
+    updateAvailable:'🎉 有新版本可用',
+    updateApply:'刷新升级',
+    updateDismiss:'稍后',
     refresh:'刷新数据',refreshing:'获取中...',
-    feedTab:'文献动态',scholarsTab:'关注学者',journalsTab:'关注期刊',importTab:'导入',settingsTab:'设置',
+    feedTab:'文献动态',scholarsTab:'关注学者',journalsTab:'关注期刊',importTab:'导入',settingsTab:'设置',guidebookTab:'使用指南',
     kwSearch:'关键词搜索',kwPlaceholder:'标题、作者、摘要、DOI...',
     topicLabel:'主题领域',journalFilterLabel:'期刊筛选',authorFilterLabel:'作者筛选',groupFilterLabel:'分组筛选',
     clear:'清除',searchTopic:'搜索主题...',searchJournal:'搜索期刊...',searchAuthor:'搜索作者...',
@@ -377,7 +460,7 @@ const I={
     dragHint:'拖拽到此分组，或点击 + 添加',
     confirmDelete:'确定删除分组「{name}」及其中的{n}个项目？',keepOne:'至少保留一个分组',
     added:'已添加',add:'添加',searchLabel:'搜索',searching:'搜索中...',noResult:'未找到结果',
-    dataSource:'数据源：',cnkiHelp:'输入知网期刊代码（如 SHXJ＝社会学研究），可在知网出版物导航页找到代码。也可输入中文名搜索预设。',
+    dataSource:'数据源：',cnkiHelp:'中文期刊或其他 RSS 订阅请使用分组中的「✎ 手动添加」，选择「RSS 订阅」并粘贴 RSS URL（如知网期刊页的订阅链接）。',
     scholarTitle:'关注的学者',journalTitle:'关注的期刊',
     presetScholar:'快速添加：社会学 / 文化社会学学者',presetEnJournal:'英文社会学核心期刊',presetCnJournal:'中文社科核心期刊（CNKI RSS）',
     noAbstract:'暂无摘要',topWork:'代表作',cited2:'被引',
@@ -394,6 +477,10 @@ const I={
     dataManagement:'数据管理',exportBtn:'📦 导出全部数据',importBackup:'📂 导入数据备份',clearAll:'🗑 清除全部数据',clearConfirm:'确定清除所有数据？此操作不可恢复。',
     yearRange:'年份范围',yr1:'1年',yr2:'2年',yr3:'3年',yr5:'5年',yr10:'10年',yr15:'15年',
     manualAdd:'手动添加',manualAddName:'名称',manualAddId:'ID / ISSN（可选）',manualAddInst:'机构（可选）',
+    manualAddRssUrl:'RSS URL（如 https://navi.cnki.net/knavi/rss/SHXJ）',
+    manualAddRssUrlHint:'知网期刊页 → 订阅 RSS，复制链接粘贴此处。也支持任意 Atom / RSS 2.0 feed。',
+    manualAddRssUrlInvalid:'URL 必须以 http:// 或 https:// 开头',
+    manualAddJournalType:'期刊类型',manualTypeLabel:'手动记录',rssTypeLabel:'RSS 订阅',
     rename:'重命名',entityWorksCount:'{n} 篇相关文献',noEntityWorks:'暂无已存储的文献',
     prev:'上一页',next:'下一页',page:'第{n}页',
     formatAuto:'自动检测',formatBib:'BibTeX',formatRIS:'RIS',formatLines:'逐行',formatCSV:'CSV / TSV',
@@ -401,17 +488,149 @@ const I={
     confirmRemoveEntity:'确定移除「{name}」？',confirmRemoveGroup:'确定删除分组「{name}」及其中的 {n} 个项目？',
     collapse:'收起',expand:'展开',
     dataManagementDesc:'所有数据保存在浏览器本地。建议定期导出备份，清理浏览器数据或换设备后可通过导入恢复。',
-    guidebookTitle:'📖 使用指南',
-    guidebook:`<p style="margin-bottom:10px;padding:8px 12px;background:var(--accent-light);border-radius:6px;color:var(--accent);font-weight:500">⚠ 重要提示：所有数据保存在浏览器本地存储中。清除浏览器数据、更换浏览器或设备后数据将丢失。请定期点击上方「导出全部数据」进行备份，以便随时恢复。</p>
-<p><strong>📄 文献动态（Feed）</strong><br>显示所有已关注学者和期刊的最新文献。顶部工具栏可按时间、被引量、标题排序，按语言筛选，以及切换已读/星标显示。左侧边栏支持按主题、期刊、作者和分组筛选。点击文献卡片可展开查看摘要和链接。</p>
-<p style="margin-top:8px"><strong>👤 关注学者（Scholars）</strong><br>通过「搜索添加」在 OpenAlex 数据库中搜索学者并添加到分组。也可通过「手动添加」(✎) 直接输入学者信息。支持拖拽排序、分组管理、点击展开查看已存储文献。数据来源为 OpenAlex，覆盖全球主要学术出版物。</p>
-<p style="margin-top:8px"><strong>📖 关注期刊（Journals）</strong><br>添加方式同学者。支持 OpenAlex（英文期刊为主，也收录部分中文期刊）和 CNKI RSS（中文期刊，输入知网期刊代码）两种数据源。可重命名期刊显示名称。CNKI RSS 仅能获取最近 1-2 期，如需更完整数据建议通过 OpenAlex 添加。</p>
-<p style="margin-top:8px"><strong>↻ 刷新数据</strong><br>点击顶部「刷新数据」按钮拉取最新文献。右侧下拉菜单可选择数据覆盖的年份范围（1-15年），范围越大获取的文献越多但耗时也越长。</p>
-<p style="margin-top:8px"><strong>⚙ 设置</strong><br>「数据管理」：导出完整备份（JSON 格式）、导入备份文件、清除所有数据。<br>「导入文献」：支持粘贴或上传 BibTeX、RIS、CSV/TSV、逐行文本格式的文献数据，手动补充未被 API 覆盖的文献。</p>`,
+    cloudSyncTitle:'☁ 云存储同步',
+    cloudSyncDesc:'通过 GitHub Gist 将数据自动备份到云端，防止浏览器数据丢失。需要 GitHub 账户和 Personal Access Token（仅需 gist 权限）。Token 和 Gist ID 仅保存在本地浏览器。',
+    cloudTokenLabel:'GitHub Token',
+    cloudTokenHint:'在 <a href="https://github.com/settings/tokens/new?scopes=gist&description=ScholarPulse" target="_blank" style="color:var(--accent)">GitHub → Settings → Developer settings → Personal access tokens</a> 创建，仅勾选 <code>gist</code> 权限。',
+    cloudGistIdLabel:'Gist ID（首次自动生成，可留空）',
+    cloudGistIdHint:'首次「上传到云端」会自动创建 Gist 并填入此处；在其他设备使用时手动填入此 ID 以恢复。',
+    cloudAutoSyncLabel:'开启自动同步（数据变动后 30 秒自动上传）',
+    cloudSaveBtn:'保存配置',cloudUploadBtn:'↑ 上传到云端',cloudDownloadBtn:'↓ 从云端恢复',
+    cloudSaved:'配置已保存',cloudUploading:'上传中...',cloudUploaded:'✓ 已上传（{time}）',
+    cloudDownloading:'下载中...',cloudDownloaded:'✓ 已恢复（{time}）',
+    cloudNoToken:'请先填写 GitHub Token',cloudNoGist:'请先上传一次数据以创建 Gist',
+    cloudConfirmDownload:'从云端下载将覆盖本地所有数据，确定继续？',
+    cloudError:'云同步出错：',
+    localSyncTitle:'💾 本地文件自动保存',
+    localSyncDesc:'选定一个本地 JSON 文件后，ScholarPulse 会自动把数据写入该文件——数据完全不经过任何服务器。把文件放到坚果云 / Dropbox / OneDrive 等同步盘的文件夹内，即可借助这些客户端实现跨设备同步。',
+    localSyncUnsupported:'⚠ 当前浏览器不支持 File System Access API。请使用 Chrome / Edge / Opera，并通过 https:// 访问（GitHub Pages 即可）。',
+    localSyncFileLabel:'当前文件：',localSyncNone:'未配置',
+    localAutoSyncLabel:'开启自动保存（数据变动后 10 秒自动写入）',
+    localPickBtn:'选择本地文件',localWriteBtn:'↑ 立即写入',localReadBtn:'↓ 从本地文件恢复',localClearBtn:'清除配置',
+    localPicked:'已选定：{name}',localWriting:'写入中...',localWritten:'✓ 已保存（{time}）',
+    localReading:'读取中...',localRead:'✓ 已恢复（{time}）',
+    localNoHandle:'请先选择本地文件',localPermDenied:'浏览器未授权写入权限',
+    localConfirmRead:'从本地文件恢复将覆盖当前所有数据，确定继续？',
+    localHandleLost:'⚠ 文件句柄已失效，请重新选择',
+    localError:'本地同步出错：',
+    guidebookTitle:'📘 使用指南',
+    guidebook:`
+<p style="margin-bottom:14px;padding:10px 14px;background:var(--accent-light);border-radius:6px;color:var(--accent);font-weight:500;line-height:1.7">⚠ <strong>重要：数据安全提示</strong><br>所有数据保存在浏览器本地存储（localStorage）中。清除浏览器数据、更换浏览器或设备后数据将丢失。<strong>强烈建议：</strong>① 在「设置 → 数据管理」中定期导出备份；② 在「设置 → 云存储同步」中配置 GitHub Gist 云端自动备份。</p>
+
+<h3 style="font-family:var(--font-d);font-size:1.2em;font-weight:600;margin-top:22px;margin-bottom:10px;color:var(--text);border-bottom:1px solid var(--border-light);padding-bottom:6px">一、基本概念</h3>
+<p>ScholarPulse 是单文件 HTML 学术追踪工具，用于订阅学者和期刊的最新文献。数据源包括：</p>
+<ul style="margin:6px 0 10px 20px;line-height:1.8">
+  <li><strong>OpenAlex</strong>（主）：覆盖全球 2.4 亿篇学术文献，涵盖绝大部分英文期刊及部分中文期刊。</li>
+  <li><strong>CNKI RSS</strong>：知网期刊 RSS feed，用于订阅无法通过 OpenAlex 获取的中文期刊。</li>
+  <li><strong>手动导入</strong>：BibTeX / RIS / CSV / 逐行文本，补充 API 未覆盖的文献。</li>
+</ul>
+
+<h3 style="font-family:var(--font-d);font-size:1.2em;font-weight:600;margin-top:22px;margin-bottom:10px;color:var(--text);border-bottom:1px solid var(--border-light);padding-bottom:6px">二、📄 文献动态（Feed）</h3>
+<p>汇总展示所有关注对象的最新文献，默认按发表日期倒序。</p>
+<p style="margin-top:8px"><strong>顶部工具栏：</strong></p>
+<ul style="margin:4px 0 8px 20px;line-height:1.8">
+  <li>排序：最新优先 / 最早优先 / 被引最多 / 标题字母序。</li>
+  <li>语言筛选：全部 / 中文 / 英文（按标题是否含汉字判定）。</li>
+  <li>「显示已读」：取消后会隐藏已读文献；「仅星标」：只显示标星条目。</li>
+</ul>
+<p><strong>左侧边栏筛选：</strong></p>
+<ul style="margin:4px 0 8px 20px;line-height:1.8">
+  <li>关键词搜索：同时匹配标题、作者、摘要、DOI。</li>
+  <li>主题领域 / 期刊 / 作者筛选：勾选后按条件过滤。</li>
+  <li>分组筛选：按「关注学者」「关注期刊」中的分组过滤。</li>
+</ul>
+<p><strong>文献卡片：</strong>点击卡片展开摘要和 DOI / 来源链接；右上角 ⭐ 标星，✓ 标记已读；主题标签可点击，快速筛选相同主题的其他文献。</p>
+
+<h3 style="font-family:var(--font-d);font-size:1.2em;font-weight:600;margin-top:22px;margin-bottom:10px;color:var(--text);border-bottom:1px solid var(--border-light);padding-bottom:6px">三、👤 关注学者</h3>
+<p><strong>添加方式：</strong></p>
+<ul style="margin:4px 0 8px 20px;line-height:1.8">
+  <li><strong>+ 搜索添加</strong>：在 OpenAlex 中搜索学者，显示机构、ORCID、被引量和代表作，便于区分同名学者。</li>
+  <li><strong>✎ 手动添加</strong>（分组右侧）：直接输入学者姓名（用于无法在 OpenAlex 中找到的作者，仅作记录，不会自动抓取文献）。</li>
+</ul>
+<p><strong>分组管理：</strong>「+ 新建分组」创建分组；拖拽学者到其他分组；拖拽分组头部可重排分组顺序；「A→Z」按字母排序；✕ 删除分组（会二次确认）。</p>
+<p><strong>展开查看：</strong>点击学者条目可展开，显示该学者在本地已存储的文献（方便快速查看历史记录）。</p>
+
+<h3 style="font-family:var(--font-d);font-size:1.2em;font-weight:600;margin-top:22px;margin-bottom:10px;color:var(--text);border-bottom:1px solid var(--border-light);padding-bottom:6px">四、📖 关注期刊</h3>
+<p><strong>英文 / OpenAlex 期刊：</strong>通过「+ 搜索添加」搜索 OpenAlex 数据库，支持搜索期刊名或 ISSN。</p>
+<p style="margin-top:8px"><strong>中文期刊 / 其他 RSS 订阅：</strong>通过<strong>手动添加 RSS URL</strong>实现，适用于任何 Atom / RSS 2.0 feed（知网、部分出版社、个人博客等）：</p>
+<ol style="margin:4px 0 8px 20px;line-height:1.8">
+  <li>在目标分组上点击 <strong>✎ 手动添加</strong>。</li>
+  <li>选择类型：<strong>RSS 订阅</strong>。</li>
+  <li>输入期刊显示名称（如「社会学研究」）并粘贴 <strong>完整 RSS URL</strong>。</li>
+</ol>
+<p style="margin-top:4px"><strong>获取知网期刊的 RSS URL：</strong>打开 <a href="https://navi.cnki.net/knavi/journals/index" target="_blank">navi.cnki.net</a> → 搜索目标期刊 → 进入期刊主页 → 右上角「订阅 RSS」按钮（有时标记为 🔗 RSS 图标）→ 复制链接。URL 格式通常是 <code>https://navi.cnki.net/knavi/rss/XXXX</code>，其中 XXXX 是期刊代码。</p>
+<p style="margin-top:4px"><strong>常用知网 RSS URL 示例：</strong>
+<code>.../rss/SHXJ</code>（社会学研究）·
+<code>.../rss/SHEH</code>（社会）·
+<code>.../rss/SHEK</code>（社会科学）·
+<code>.../rss/ZSHK</code>（中国社会科学）·
+<code>.../rss/SHZX</code>（社会学评论）·
+<code>.../rss/ZGRS</code>（中国人口科学）·
+<code>.../rss/JYYJ</code>（教育研究）·
+<code>.../rss/ZZXL</code>（政治学研究）·
+<code>.../rss/ZFLX</code>（中外法学）。
+</p>
+<p style="margin-top:8px"><strong>关于 RSS 订阅的局限：</strong></p>
+<ul style="margin:4px 0 8px 20px;line-height:1.8">
+  <li>知网等大多数 RSS feed 单次请求只返回最近 ~20 篇文献，这是 feed 本身的限制。</li>
+  <li>ScholarPulse 采用<strong>累积策略</strong>：每次刷新会保留上次获取的历史条目，只要不清除数据，追踪时间越久积累越多。</li>
+  <li>RSS 需通过 CORS 代理访问，默认使用 allorigins.win / corsproxy.io，偶有不稳定。如需稳定访问可在「设置 → CNKI RSS 代理」填入自建 Cloudflare Worker。</li>
+  <li>RSS URL 失效时，在期刊条目右侧点 🔗 可编辑 URL。</li>
+</ul>
+<p><strong>重命名：</strong>点击期刊条目右侧 ✎ 可修改显示名称（例如把英文原名改为中文译名）。</p>
+
+<h3 style="font-family:var(--font-d);font-size:1.2em;font-weight:600;margin-top:22px;margin-bottom:10px;color:var(--text);border-bottom:1px solid var(--border-light);padding-bottom:6px">五、↻ 刷新数据</h3>
+<p>点击顶部「↻ 刷新数据」拉取所有关注对象的最新文献。右侧下拉菜单设置时间窗口（1–15 年）：</p>
+<ul style="margin:4px 0 8px 20px;line-height:1.8">
+  <li>窗口越大，获取的文献越多，耗时也越长。</li>
+  <li>OpenAlex 每源最多获取 200–1000 篇；CNKI RSS 每次 ~20 篇（累积保留历史）。</li>
+  <li>并发控制：OpenAlex 5 个并行、CNKI 3 个并行，避免触发限流。</li>
+</ul>
+
+<h3 style="font-family:var(--font-d);font-size:1.2em;font-weight:600;margin-top:22px;margin-bottom:10px;color:var(--text);border-bottom:1px solid var(--border-light);padding-bottom:6px">六、⚙ 设置</h3>
+<p><strong>1. 数据管理：</strong></p>
+<ul style="margin:4px 0 8px 20px;line-height:1.8">
+  <li>📦 导出全部数据：下载 JSON 备份（包含学者、期刊、文献、已读、星标等所有状态）。</li>
+  <li>📂 导入数据备份：从 JSON 文件恢复。</li>
+  <li>🗑 清除全部数据：重置所有本地数据（不可恢复）。</li>
+</ul>
+<p><strong>2. ☁ 云存储同步（GitHub Gist）：</strong></p>
+<ol style="margin:4px 0 8px 20px;line-height:1.8">
+  <li>在 GitHub → Settings → Developer settings → <a href="https://github.com/settings/tokens/new?scopes=gist&description=ScholarPulse" target="_blank">Personal access tokens</a> 创建 token，<strong>仅勾选 gist 权限</strong>。</li>
+  <li>将 token 填入「GitHub Token」框，点击「保存配置」。</li>
+  <li>点击「↑ 上传到云端」，首次会自动创建私密 Gist 并填入 Gist ID。</li>
+  <li>勾选「开启自动同步」后，任何数据变动会在 30 秒后自动上传（去抖）。</li>
+  <li>在其他设备使用时：填入同一个 Token 和 Gist ID，点击「↓ 从云端恢复」即可同步所有数据。</li>
+</ol>
+<p style="margin-top:6px;padding:6px 10px;background:var(--surface-alt);border-radius:5px;font-size:.88em">Gist 为私密（secret，但非加密），请勿在公共电脑上保存 Token。清除浏览器数据后，Token 需重新填入，但只要保留 Gist ID，数据可完整恢复。</p>
+<p style="margin-top:8px"><strong>3. 💾 本地文件自动保存（File System Access API）：</strong></p>
+<ol style="margin:4px 0 8px 20px;line-height:1.8">
+  <li>点击「选择本地文件」，在弹出的对话框中定位到一个同步盘的文件夹（如 <code>坚果云/ScholarPulse/</code> 或 <code>Dropbox/ScholarPulse/</code>），命名文件如 <code>scholarpulse-backup.json</code>。</li>
+  <li>浏览器会记住你的选择，之后每次打开 ScholarPulse 无需再选。</li>
+  <li>勾选「开启自动保存」后，数据变动 10 秒后自动写入该文件。</li>
+  <li>在另一台设备上：确保同步盘已把文件同步过来，打开 ScholarPulse，点「选择本地文件」选中同一个文件，再点「↓ 从本地文件恢复」。</li>
+</ol>
+<p style="margin-top:6px;padding:6px 10px;background:var(--surface-alt);border-radius:5px;font-size:.88em">⚠ 此功能仅支持 Chrome / Edge / Opera，且必须通过 <code>https://</code>（如 GitHub Pages）或 <code>localhost</code> 访问。双击本地 HTML 文件打开（<code>file://</code>）时不可用。浏览器关闭重开后首次写入可能要求再次授权。数据完全不经过任何服务器，隐私最佳。</p>
+<p style="margin-top:8px;padding:6px 10px;background:var(--accent-light);border-radius:5px;font-size:.88em;color:var(--accent)">💡 <strong>建议同时开启云同步和本地同步</strong>：双重备份，互为保险。</p>
+<p style="margin-top:8px"><strong>4. 导入文献：</strong>粘贴或上传 BibTeX / RIS / CSV/TSV / 逐行文本，手动补充文献。</p>
+<p style="margin-top:8px"><strong>5. CNKI RSS 代理：</strong>自建 Cloudflare Worker 代理地址（可选），用于替代默认公共代理。</p>
+
+<h3 style="font-family:var(--font-d);font-size:1.2em;font-weight:600;margin-top:22px;margin-bottom:10px;color:var(--text);border-bottom:1px solid var(--border-light);padding-bottom:6px">七、使用建议</h3>
+<ul style="margin:4px 0 8px 20px;line-height:1.8">
+  <li>首次使用先添加 5–10 个核心学者 / 期刊，避免一次刷新过多数据。</li>
+  <li>年份窗口建议设为 2–5 年，兼顾覆盖度和速度。</li>
+  <li>分组策略：可按研究方向（如「文化社会学」「定量方法」）或人物关系（「我的合作者」「导师学派」）分组。</li>
+  <li>星标用于标记重点关注的文献；读完后勾选「已读」，下次刷新仍保留但会淡化显示。</li>
+  <li><strong>至少每月导出一次备份，或开启云同步 / 本地自动保存（推荐两者都开）。</strong></li>
+</ul>
+`,
   },
   en:{
+    updateAvailable:'🎉 Update available',
+    updateApply:'Reload',
+    updateDismiss:'Later',
     refresh:'Refresh',refreshing:'Loading...',
-    feedTab:'Feed',scholarsTab:'Scholars',journalsTab:'Journals',importTab:'Import',settingsTab:'Settings',
+    feedTab:'Feed',scholarsTab:'Scholars',journalsTab:'Journals',importTab:'Import',settingsTab:'Settings',guidebookTab:'Guide',
     kwSearch:'Keyword Search',kwPlaceholder:'Title, author, abstract, DOI...',
     topicLabel:'Topics',journalFilterLabel:'Journal Filter',authorFilterLabel:'Author Filter',groupFilterLabel:'Group Filter',
     clear:'Clear',searchTopic:'Search topics...',searchJournal:'Search journals...',searchAuthor:'Search authors...',
@@ -426,7 +645,7 @@ const I={
     dragHint:'Drag items here, or click + to add',
     confirmDelete:'Delete group "{name}" with {n} items?',keepOne:'Must keep at least one group',
     added:'Added',add:'Add',searchLabel:'Search',searching:'Searching...',noResult:'No results found',
-    dataSource:'Source:',cnkiHelp:'Enter CNKI journal code (e.g. SHXJ = Sociological Studies). Find codes on CNKI journal navigation page.',
+    dataSource:'Source:',cnkiHelp:'For Chinese journals or any other RSS feed, use ✎ Manual Add in a group, pick "RSS feed", and paste the RSS URL.',
     scholarTitle:'Followed Scholars',journalTitle:'Followed Journals',
     presetScholar:'Quick add: Sociology scholars',presetEnJournal:'Core English sociology journals',presetCnJournal:'Core Chinese social science journals (CNKI RSS)',
     noAbstract:'No abstract available',topWork:'Top work',cited2:'Cited',
@@ -437,12 +656,16 @@ const I={
     importSourceLabel:'Source name (optional):',importFormatLabel:'Format:',importBtn:'Import',importFileBtn:'📂 Upload File',
     importSourcePlaceholder:'e.g. Google Scholar, Scopus, etc.',
     importPlaceholder:'Paste article data...\n\nSupported formats:\n• BibTeX (@article{...})\n• RIS (TY  - JOUR ...)\n• CSV/TSV (title,author,year,...)\n• Line-by-line: Title / Author1, Author2',
-    settingsTitle:'Settings',proxyTitle:'CNKI RSS Proxy URL',
-    proxyDesc:'CNKI RSS cannot be accessed directly from browser due to CORS. Deploy a Cloudflare Worker proxy (free) and enter the URL below.',
+    settingsTitle:'Settings',proxyTitle:'🔗 CNKI RSS Proxy (optional)',
+    proxyDesc:'CNKI RSS is CORS-restricted in browsers. By default, public CORS proxies (allorigins, corsproxy.io) are tried. For reliability, deploy your own Cloudflare Worker and enter its URL here.',
     proxySave:'Save',proxyTest:'Test Connection',
     dataManagement:'Data Management',exportBtn:'📦 Export All Data',importBackup:'📂 Import Backup',clearAll:'🗑 Clear All Data',clearConfirm:'Clear all data? This cannot be undone.',
     yearRange:'Year Range',yr1:'1 yr',yr2:'2 yrs',yr3:'3 yrs',yr5:'5 yrs',yr10:'10 yrs',yr15:'15 yrs',
     manualAdd:'Manual Add',manualAddName:'Name',manualAddId:'ID / ISSN (optional)',manualAddInst:'Institution (optional)',
+    manualAddRssUrl:'RSS URL (e.g. https://navi.cnki.net/knavi/rss/SHXJ)',
+    manualAddRssUrlHint:'On the CNKI journal page, click "Subscribe RSS" and paste the link here. Any Atom / RSS 2.0 feed also works.',
+    manualAddRssUrlInvalid:'URL must start with http:// or https://',
+    manualAddJournalType:'Journal type',manualTypeLabel:'Record only',rssTypeLabel:'RSS feed',
     rename:'Rename',entityWorksCount:'{n} related articles',noEntityWorks:'No stored articles',
     prev:'Prev',next:'Next',page:'Page {n}',
     formatAuto:'Auto-detect',formatBib:'BibTeX',formatRIS:'RIS',formatLines:'Line-by-line',formatCSV:'CSV / TSV',
@@ -450,13 +673,142 @@ const I={
     confirmRemoveEntity:'Remove "{name}"?',confirmRemoveGroup:'Delete group "{name}" with {n} items?',
     collapse:'Collapse',expand:'Expand',
     dataManagementDesc:'All data is stored locally in your browser. Export backups regularly — data will be lost if you clear browser data or switch devices.',
-    guidebookTitle:'📖 User Guide',
-    guidebook:`<p style="margin-bottom:10px;padding:8px 12px;background:var(--accent-light);border-radius:6px;color:var(--accent);font-weight:500">⚠ Important: All data is stored in your browser's local storage. Clearing browser data, switching browsers, or switching devices will result in data loss. Please regularly click "Export All Data" above to create backups.</p>
-<p><strong>📄 Feed</strong><br>Displays the latest articles from all followed scholars and journals. Use the toolbar to sort by date, citations, or title, filter by language, and toggle read/starred visibility. The left sidebar allows filtering by topic, journal, author, and group. Click an article card to expand its abstract and links.</p>
-<p style="margin-top:8px"><strong>👤 Scholars</strong><br>Use "Search & Add" to find scholars in the OpenAlex database and add them to groups. You can also use "Manual Add" (✎) to enter scholar info directly. Supports drag-and-drop reordering, group management, and click-to-expand to view stored articles. Data sourced from OpenAlex, covering major global academic publications.</p>
-<p style="margin-top:8px"><strong>📖 Journals</strong><br>Same adding methods as scholars. Supports OpenAlex (primarily English journals, also indexes some Chinese journals) and CNKI RSS (Chinese journals — enter the CNKI journal code). Journal display names can be renamed. CNKI RSS only provides the latest 1–2 issues; for fuller coverage, add via OpenAlex instead.</p>
-<p style="margin-top:8px"><strong>↻ Refresh</strong><br>Click the "Refresh" button in the header to fetch the latest articles. The dropdown next to it sets the year range (1–15 years) — larger ranges fetch more articles but take longer.</p>
-<p style="margin-top:8px"><strong>⚙ Settings</strong><br>"Data Management": Export a full backup (JSON), import a backup file, or clear all data.<br>"Import Articles": Paste or upload BibTeX, RIS, CSV/TSV, or line-by-line text to manually add articles not covered by the API.</p>`,
+    cloudSyncTitle:'☁ Cloud Sync',
+    cloudSyncDesc:'Automatically back up your data to the cloud via GitHub Gist to prevent data loss. Requires a GitHub account and a Personal Access Token (gist scope only). The token and Gist ID are stored only in your local browser.',
+    cloudTokenLabel:'GitHub Token',
+    cloudTokenHint:'Create at <a href="https://github.com/settings/tokens/new?scopes=gist&description=ScholarPulse" target="_blank" style="color:var(--accent)">GitHub → Settings → Developer settings → Personal access tokens</a>, with <code>gist</code> scope only.',
+    cloudGistIdLabel:'Gist ID (auto-generated on first upload, can be left empty)',
+    cloudGistIdHint:'The first "Upload to Cloud" will create a Gist and auto-fill this field. On another device, enter this ID manually to restore.',
+    cloudAutoSyncLabel:'Enable auto-sync (upload 30s after any change)',
+    cloudSaveBtn:'Save Config',cloudUploadBtn:'↑ Upload to Cloud',cloudDownloadBtn:'↓ Restore from Cloud',
+    cloudSaved:'Config saved',cloudUploading:'Uploading...',cloudUploaded:'✓ Uploaded ({time})',
+    cloudDownloading:'Downloading...',cloudDownloaded:'✓ Restored ({time})',
+    cloudNoToken:'Please enter GitHub Token first',cloudNoGist:'Upload once first to create the Gist',
+    cloudConfirmDownload:'Downloading from cloud will overwrite all local data. Continue?',
+    cloudError:'Cloud sync error: ',
+    localSyncTitle:'💾 Local File Auto-save',
+    localSyncDesc:'Pick a local JSON file and ScholarPulse will automatically write data to it — no server involved. Drop the file into a Jianguoyun / Dropbox / OneDrive sync folder and let the desktop client handle cross-device sync.',
+    localSyncUnsupported:'⚠ Your browser does not support the File System Access API. Please use Chrome / Edge / Opera and access via https:// (GitHub Pages works).',
+    localSyncFileLabel:'Current file:',localSyncNone:'Not configured',
+    localAutoSyncLabel:'Enable auto-save (write 10s after any change)',
+    localPickBtn:'Pick Local File',localWriteBtn:'↑ Write Now',localReadBtn:'↓ Restore from File',localClearBtn:'Clear',
+    localPicked:'Selected: {name}',localWriting:'Writing...',localWritten:'✓ Saved ({time})',
+    localReading:'Reading...',localRead:'✓ Restored ({time})',
+    localNoHandle:'Pick a local file first',localPermDenied:'Browser denied write permission',
+    localConfirmRead:'Restoring from local file will overwrite all current data. Continue?',
+    localHandleLost:'⚠ File handle invalidated, please re-select',
+    localError:'Local sync error: ',
+    guidebookTitle:'📘 User Guide',
+    guidebook:`
+<p style="margin-bottom:14px;padding:10px 14px;background:var(--accent-light);border-radius:6px;color:var(--accent);font-weight:500;line-height:1.7">⚠ <strong>Important: Data Safety</strong><br>All data is stored in your browser's local storage (localStorage). Clearing browser data, switching browsers, or switching devices will cause data loss. <strong>Strongly recommended:</strong> ① Regularly export backups via "Settings → Data Management"; ② Configure GitHub Gist cloud sync in "Settings → Cloud Sync".</p>
+
+<h3 style="font-family:var(--font-d);font-size:1.2em;font-weight:600;margin-top:22px;margin-bottom:10px;color:var(--text);border-bottom:1px solid var(--border-light);padding-bottom:6px">1. Concepts</h3>
+<p>ScholarPulse is a single-file HTML academic tracker for subscribing to the latest works of scholars and journals. Data sources:</p>
+<ul style="margin:6px 0 10px 20px;line-height:1.8">
+  <li><strong>OpenAlex</strong> (primary): 240M+ academic works worldwide, covering most English journals and some Chinese journals.</li>
+  <li><strong>CNKI RSS</strong>: Journal RSS feeds from CNKI, for Chinese journals not available on OpenAlex.</li>
+  <li><strong>Manual import</strong>: BibTeX / RIS / CSV / line-by-line text, to supplement works not covered by the APIs.</li>
+</ul>
+
+<h3 style="font-family:var(--font-d);font-size:1.2em;font-weight:600;margin-top:22px;margin-bottom:10px;color:var(--text);border-bottom:1px solid var(--border-light);padding-bottom:6px">2. 📄 Feed</h3>
+<p>Aggregates the latest articles from all followed entities. Default sort: publication date descending.</p>
+<p style="margin-top:8px"><strong>Top toolbar:</strong></p>
+<ul style="margin:4px 0 8px 20px;line-height:1.8">
+  <li>Sort: newest first / oldest first / most cited / title alphabetical.</li>
+  <li>Language filter: all / Chinese / English (detected by whether the title contains CJK characters).</li>
+  <li>"Show read" toggle: hides read items when off; "Starred only": shows only starred items.</li>
+</ul>
+<p><strong>Left sidebar filters:</strong></p>
+<ul style="margin:4px 0 8px 20px;line-height:1.8">
+  <li>Keyword search: matches title, authors, abstract, and DOI simultaneously.</li>
+  <li>Topic / Journal / Author filters: check to filter.</li>
+  <li>Group filter: by group membership in Scholars / Journals.</li>
+</ul>
+<p><strong>Article cards:</strong> click to expand abstract and DOI / source links. Top-right: ⭐ star, ✓ mark as read. Topic tags are clickable to filter by same topic.</p>
+
+<h3 style="font-family:var(--font-d);font-size:1.2em;font-weight:600;margin-top:22px;margin-bottom:10px;color:var(--text);border-bottom:1px solid var(--border-light);padding-bottom:6px">3. 👤 Scholars</h3>
+<p><strong>Adding:</strong></p>
+<ul style="margin:4px 0 8px 20px;line-height:1.8">
+  <li><strong>+ Search & Add</strong>: search OpenAlex with institution, ORCID, citations, and top work shown for disambiguation.</li>
+  <li><strong>✎ Manual Add</strong> (per-group): enter a scholar's name directly (for people not on OpenAlex; record-only, no auto-fetch).</li>
+</ul>
+<p><strong>Group management:</strong> "+ New Group" creates groups; drag scholars between groups; drag group headers to reorder; "A→Z" sorts alphabetically; ✕ deletes (with confirm).</p>
+<p><strong>Expand:</strong> click a scholar to view their already-stored articles.</p>
+
+<h3 style="font-family:var(--font-d);font-size:1.2em;font-weight:600;margin-top:22px;margin-bottom:10px;color:var(--text);border-bottom:1px solid var(--border-light);padding-bottom:6px">4. 📖 Journals</h3>
+<p><strong>English / OpenAlex journals:</strong> use "+ Search & Add" to search OpenAlex by name or ISSN.</p>
+<p style="margin-top:8px"><strong>Chinese journals / other RSS subscriptions:</strong> add <strong>manually via RSS URL</strong> — works with any Atom / RSS 2.0 feed (CNKI, some publishers, blogs, etc.):</p>
+<ol style="margin:4px 0 8px 20px;line-height:1.8">
+  <li>Click <strong>✎ Manual Add</strong> on the target group.</li>
+  <li>Select type: <strong>RSS feed</strong>.</li>
+  <li>Enter the display name (e.g. 社会学研究) and paste the <strong>full RSS URL</strong>.</li>
+</ol>
+<p style="margin-top:4px"><strong>Getting a CNKI RSS URL:</strong> open <a href="https://navi.cnki.net/knavi/journals/index" target="_blank">navi.cnki.net</a> → search the journal → on its page, click the "Subscribe RSS" button (sometimes shown as a 🔗 icon) → copy the link. URLs usually look like <code>https://navi.cnki.net/knavi/rss/XXXX</code> where XXXX is the journal code.</p>
+<p style="margin-top:4px"><strong>Common CNKI RSS URL patterns:</strong>
+<code>.../rss/SHXJ</code> (社会学研究) ·
+<code>.../rss/SHEH</code> (社会) ·
+<code>.../rss/SHEK</code> (社会科学) ·
+<code>.../rss/ZSHK</code> (中国社会科学) ·
+<code>.../rss/SHZX</code> (社会学评论) ·
+<code>.../rss/ZGRS</code> (中国人口科学) ·
+<code>.../rss/JYYJ</code> (教育研究) ·
+<code>.../rss/ZZXL</code> (政治学研究) ·
+<code>.../rss/ZFLX</code> (中外法学).
+</p>
+<p style="margin-top:8px"><strong>RSS subscription limits:</strong></p>
+<ul style="margin:4px 0 8px 20px;line-height:1.8">
+  <li>Most feeds (CNKI included) return only ~20 recent items per request — that's a feed limit.</li>
+  <li>ScholarPulse uses an <strong>accumulating strategy</strong>: each refresh preserves previously-fetched items, so coverage grows over time.</li>
+  <li>RSS requires a CORS proxy; default uses allorigins.win / corsproxy.io, occasionally unstable. For reliability, configure your own Cloudflare Worker in Settings.</li>
+  <li>If the RSS URL breaks, click 🔗 next to the journal entry to edit the URL.</li>
+</ul>
+<p><strong>Rename:</strong> click ✎ next to a journal to change its display name (e.g. translate an English name to Chinese).</p>
+
+<h3 style="font-family:var(--font-d);font-size:1.2em;font-weight:600;margin-top:22px;margin-bottom:10px;color:var(--text);border-bottom:1px solid var(--border-light);padding-bottom:6px">5. ↻ Refresh</h3>
+<p>Click the top-right "↻ Refresh" to fetch the latest articles from all followed entities. The dropdown sets the time window (1–15 years):</p>
+<ul style="margin:4px 0 8px 20px;line-height:1.8">
+  <li>Larger windows fetch more articles but take longer.</li>
+  <li>OpenAlex: up to 200–1000 per source; CNKI RSS: ~20 per source (history accumulates).</li>
+  <li>Concurrency: 5 OpenAlex in parallel, 3 CNKI in parallel to avoid rate limits.</li>
+</ul>
+
+<h3 style="font-family:var(--font-d);font-size:1.2em;font-weight:600;margin-top:22px;margin-bottom:10px;color:var(--text);border-bottom:1px solid var(--border-light);padding-bottom:6px">6. ⚙ Settings</h3>
+<p><strong>1. Data Management:</strong></p>
+<ul style="margin:4px 0 8px 20px;line-height:1.8">
+  <li>📦 Export All Data: downloads a JSON backup (scholars, journals, works, read/star state, all settings).</li>
+  <li>📂 Import Backup: restores from a JSON file.</li>
+  <li>🗑 Clear All Data: resets all local data (irreversible).</li>
+</ul>
+<p><strong>2. ☁ Cloud Sync (GitHub Gist):</strong></p>
+<ol style="margin:4px 0 8px 20px;line-height:1.8">
+  <li>Create a token at GitHub → Settings → Developer settings → <a href="https://github.com/settings/tokens/new?scopes=gist&description=ScholarPulse" target="_blank">Personal access tokens</a>, <strong>with gist scope only</strong>.</li>
+  <li>Paste it into the "GitHub Token" field and click "Save Config".</li>
+  <li>Click "↑ Upload to Cloud" — the first upload creates a secret Gist and fills in the Gist ID.</li>
+  <li>Enable "auto-sync" to upload 30 seconds after any data change (debounced).</li>
+  <li>On another device: enter the same Token and Gist ID, click "↓ Restore from Cloud" to sync everything.</li>
+</ol>
+<p style="margin-top:6px;padding:6px 10px;background:var(--surface-alt);border-radius:5px;font-size:.88em">Gists are secret (not encrypted). Don't save the token on public machines. After clearing browser data, re-enter the token — as long as you keep the Gist ID, data is fully recoverable.</p>
+<p style="margin-top:8px"><strong>3. 💾 Local File Auto-save (File System Access API):</strong></p>
+<ol style="margin:4px 0 8px 20px;line-height:1.8">
+  <li>Click "Pick Local File", navigate to a sync folder (e.g. <code>Dropbox/ScholarPulse/</code> or <code>坚果云/ScholarPulse/</code>), and name the file <code>scholarpulse-backup.json</code>.</li>
+  <li>The browser remembers your choice — you won't need to re-pick on future visits.</li>
+  <li>Enable "auto-save" and ScholarPulse writes to the file 10 seconds after any change.</li>
+  <li>On another device: make sure the sync client has pulled the file down, open ScholarPulse, click "Pick Local File" and select the same file, then click "↓ Restore from File".</li>
+</ol>
+<p style="margin-top:6px;padding:6px 10px;background:var(--surface-alt);border-radius:5px;font-size:.88em">⚠ Requires Chrome / Edge / Opera and access via <code>https://</code> (e.g. GitHub Pages) or <code>localhost</code>. Not available when opening a local HTML file (<code>file://</code>). You may be asked to re-grant permission after closing and reopening the browser. Data never leaves your device.</p>
+<p style="margin-top:8px;padding:6px 10px;background:var(--accent-light);border-radius:5px;font-size:.88em;color:var(--accent)">💡 <strong>Enable both cloud and local sync</strong> for dual backup.</p>
+<p style="margin-top:8px"><strong>4. Import Articles:</strong> paste or upload BibTeX / RIS / CSV/TSV / line-by-line text to supplement.</p>
+<p style="margin-top:8px"><strong>5. CNKI RSS Proxy:</strong> optional custom Cloudflare Worker URL to replace the default public proxies.</p>
+
+<h3 style="font-family:var(--font-d);font-size:1.2em;font-weight:600;margin-top:22px;margin-bottom:10px;color:var(--text);border-bottom:1px solid var(--border-light);padding-bottom:6px">7. Tips</h3>
+<ul style="margin:4px 0 8px 20px;line-height:1.8">
+  <li>Start with 5–10 core scholars / journals to keep the first refresh manageable.</li>
+  <li>A year window of 2–5 balances coverage and speed well.</li>
+  <li>Group by research direction (e.g. "Cultural Sociology", "Quantitative Methods") or relationship ("My Collaborators", "Advisor's School").</li>
+  <li>Star important items; read-marked items are kept but dimmed in later refreshes.</li>
+  <li><strong>Export at least once a month, or turn on cloud sync / local auto-save (both recommended).</strong></li>
+</ul>
+`,
   }
 };
 function t(key){return I[lang][key]||I.zh[key]||key}
@@ -475,6 +827,10 @@ function applyI18n(){
     const key=el.getAttribute('data-i-text');
     if(I[lang][key]) el.textContent=I[lang][key];
   });
+  document.querySelectorAll('[data-i-title]').forEach(el=>{
+  const key=el.getAttribute('data-i-title');
+  if(I[lang][key]) el.setAttribute('title',I[lang][key]);
+  });
   document.querySelectorAll('[data-i]').forEach(el=>{
     const key=el.getAttribute('data-i');
     if(I[lang][key]) el.textContent=I[lang][key];
@@ -489,6 +845,8 @@ function applyI18n(){
   document.getElementById('importDesc').textContent=t('importDesc');
   // Guidebook
   const gb=document.getElementById('guidebookContent');if(gb)gb.innerHTML=t('guidebook');
+  // cloudTokenHint
+  const cth=document.getElementById('cloudTokenHint');if(cth)cth.innerHTML=t('cloudTokenHint');
   // Year range select
   const ys=document.getElementById('yearRangeSelect');
   if(ys){const opts=ys.options;opts[0].text=t('yr1');opts[1].text=t('yr2');opts[2].text=t('yr3');opts[3].text=t('yr5');opts[4].text=t('yr10');opts[5].text=t('yr15')}
@@ -506,6 +864,9 @@ function save(){
   localStorage.setItem('sp3_works',JSON.stringify(works));
   localStorage.setItem('sp3_read',JSON.stringify([...readSet]));
   localStorage.setItem('sp3_star',JSON.stringify([...starSet]));
+  // Trigger debounced auto-syncs if configured
+  if(typeof cloudAutoSyncTrigger==='function') cloudAutoSyncTrigger();
+  if(typeof localAutoSyncTrigger==='function') localAutoSyncTrigger();
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -577,13 +938,61 @@ async function fetchWithFallback(code,customUrl){
 }
 function parseCnkiRss(xml,code,journalName){
   const parser=new DOMParser();const doc=parser.parseFromString(xml,'text/xml');const items=doc.querySelectorAll('item');const results=[];
+  // Helper: extract author names from an item using multiple strategies
+  function extractAuthors(item,plainDesc,rawDesc){
+    const collected=[];
+    // Strategy 1: RSS <author> element(s)
+    item.querySelectorAll('author').forEach(el=>{
+      const txt=(el.textContent||'').trim();
+      if(txt) collected.push(txt);
+    });
+    // Strategy 2: Dublin Core <dc:creator> — often used by CNKI
+    const dcNodes=item.getElementsByTagName('*');
+    for(let i=0;i<dcNodes.length;i++){
+      const n=dcNodes[i];const tag=(n.tagName||n.nodeName||'').toLowerCase();
+      if(tag==='dc:creator'||tag==='creator'){
+        const txt=(n.textContent||'').trim();
+        if(txt) collected.push(txt);
+      }
+    }
+    // Strategy 3: parse from description. CNKI descriptions often have <br/> instead of \n,
+    // so normalize first.
+    if(!collected.length){
+      const normalized=rawDesc.replace(/<br\s*\/?>/gi,'\n').replace(/<\/?p>/gi,'\n').replace(/<[^>]+>/g,'').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&');
+      // Try multiple author labels (zh & en)
+      const patterns=[
+        /作者[：:]\s*([^\n\r]{1,200})/,
+        /著者[：:]\s*([^\n\r]{1,200})/,
+        /Authors?[：:]\s*([^\n\r]{1,200})/i,
+        /作\s*者[：:]\s*([^\n\r]{1,200})/,
+      ];
+      for(const p of patterns){
+        const m=normalized.match(p);
+        if(m){
+          // Stop at next known label (摘要/关键词/单位/机构/Keywords) if on same line
+          let raw=m[1].split(/(?:摘\s*要|关键词|单位|机构|Keywords?|Abstract|DOI|引文)[：:]/i)[0];
+          collected.push(raw);
+          break;
+        }
+      }
+    }
+    // Split aggregated strings on common separators
+    const out=[];
+    collected.forEach(s=>{
+      s.split(/[;；,，、\s\u3000]+|\sand\s|\&/).forEach(a=>{
+        const name=a.trim().replace(/^[\-·•]+|[\-·•]+$/g,'');
+        if(name&&name.length>=1&&name.length<=20&&!out.includes(name)) out.push(name);
+      });
+    });
+    return out;
+  }
   items.forEach(item=>{
     const title=(item.querySelector('title')?.textContent||'').trim();if(!title)return;
-    const desc=item.querySelector('description')?.textContent||'';const link=item.querySelector('link')?.textContent||'';const pubDate=item.querySelector('pubDate')?.textContent||'';
-    const plainDesc=desc.replace(/<[^>]*>/g,'');
-    const authorMatch=plainDesc.match(/作者[：:]\s*([^\n]+)/);
-    const authors=authorMatch?authorMatch[1].split(/[;；,，、\s]+/).map(a=>a.trim()).filter(a=>a&&a.length<20):[];
-    const abstractMatch=plainDesc.match(/摘要[：:]\s*([\s\S]+)/);
+    const rawDesc=item.querySelector('description')?.textContent||'';
+    const link=item.querySelector('link')?.textContent||'';const pubDate=item.querySelector('pubDate')?.textContent||'';
+    const plainDesc=rawDesc.replace(/<br\s*\/?>/gi,'\n').replace(/<[^>]+>/g,'').replace(/&nbsp;/g,' ');
+    const authors=extractAuthors(item,plainDesc,rawDesc);
+    const abstractMatch=plainDesc.match(/(?:摘\s*要|Abstract)[：:]\s*([\s\S]+?)(?:\n\s*(?:关键词|Keywords?|DOI|引文|基金)[：:]|$)/i);
     const abstract=abstractMatch?abstractMatch[1].trim():(plainDesc.length>20?plainDesc.trim():null);
     const dateObj=pubDate?new Date(pubDate):null;
     const dateStr=dateObj&&!isNaN(dateObj)?dateObj.toISOString().split('T')[0]:'';
@@ -683,8 +1092,10 @@ async function fetchAll(){
     });
     if(cnkiTasks.length)await parallelLimit(cnkiTasks,3);
 
-    // Keep imported works
-    works.filter(w=>w.type==='import'&&!map.has(w.id)).forEach(w=>map.set(w.id,w));
+    // Keep imported works AND previously-fetched CNKI RSS works.
+    // CNKI RSS only returns ~20 recent items per request, so we accumulate
+    // historical entries across refreshes (IDs are stable: cnki:CODE:title-prefix).
+    works.filter(w=>(w.type==='import'||w.type==='cnki_rss')&&!map.has(w.id)).forEach(w=>map.set(w.id,w));
 
     works=[...map.values()].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
     save();
@@ -1046,6 +1457,20 @@ function renderScholarGroups(){
   updateBadges();
 }
 
+// Compose the small meta line shown under a journal name.
+// Shows the RSS host for URL-based subscriptions, the legacy CNKI code, or OpenAlex/ISSN.
+function journalMetaLabel(j){
+  if(j.type==='cnki_rss'){
+    if(j.rssUrl){
+      let host='';try{host=new URL(j.rssUrl).hostname}catch{host=j.rssUrl.slice(0,40)}
+      return `RSS · ${esc(host)}`;
+    }
+    if(j.rssCode) return `CNKI RSS · ${esc(j.rssCode)}`;
+    return 'RSS';
+  }
+  if(j.type==='manual') return `Manual${j.issn?' · '+esc(j.issn):''}`;
+  return `OpenAlex${j.issn?' · '+esc(j.issn):''}`;
+}
 function renderJournalGroups(){
   const container=document.getElementById('journalGroups');
   const countEl=document.getElementById('journalCount');
@@ -1073,7 +1498,7 @@ function renderJournalGroups(){
           const eWorks=isExp?getEntityWorks('journals',gi,ei):[];
           return `<div class="entity-item" draggable="true" ondragstart="onItemDragStart('journals',${gi},${ei},event)" ondragend="onItemDragEnd(event)" ondragover="onItemDragOver(event)" ondragleave="onItemDragLeave(event)" ondrop="onItemDrop('journals',${gi},${ei},event)" onclick="toggleEntityWorks('journals',${gi},${ei})">
             <div style="min-width:0"><div class="name">${esc(j.name)}</div>
-              <div class="meta">${j.type==='cnki_rss'?'CNKI RSS':'OpenAlex'} ${esc(j.issn||'')}</div></div>
+              <div class="meta">${journalMetaLabel(j)}</div></div>
             <div style="display:flex;gap:2px;align-items:center" onclick="event.stopPropagation()">
               <button class="btn-ghost" onclick="renameEntity('journals',${gi},${ei})" title="${t('rename')}">✎</button>
               ${j.type==='cnki_rss'?`<button class="btn-ghost" onclick="editRssUrl('journals',${gi},${ei})" title="RSS URL">🔗</button>`:''}
@@ -1088,6 +1513,7 @@ function renderJournalGroups(){
 
 // ════════════════════════════════════════════════════════════════
 // MANUAL ADD (scholar or journal by hand)
+// For journals, supports choosing type: manual record vs CNKI RSS subscription.
 // ════════════════════════════════════════════════════════════════
 function openManualAdd(type,gi){
   const isScholar=type==='scholars';
@@ -1098,21 +1524,84 @@ function openManualAdd(type,gi){
   document.querySelectorAll('.manual-add-form').forEach(e=>e.remove());
   const container=document.querySelector(`#${isScholar?'scholarGroups':'journalGroups'} .group:nth-child(${gi+1}) .group-body`);
   const form=document.createElement('div');form.className='manual-add-form';form.id=formId;
-  form.innerHTML=`
-    <input id="ma_name_${gi}" placeholder="${t('manualAddName')}" autofocus>
-    <input id="ma_id_${gi}" placeholder="${t('manualAddId')}">
-    ${isScholar?`<input id="ma_inst_${gi}" placeholder="${t('manualAddInst')}">`:''} 
-    <button class="btn btn-primary btn-sm" onclick="submitManualAdd('${type}',${gi})">${t('add')}</button>
-    <button class="btn btn-sm" onclick="this.parentElement.remove()">✕</button>`;
+  if(isScholar){
+    form.innerHTML=`
+      <input id="ma_name_${gi}" placeholder="${t('manualAddName')}" autofocus>
+      <input id="ma_id_${gi}" placeholder="${t('manualAddId')}">
+      <input id="ma_inst_${gi}" placeholder="${t('manualAddInst')}">
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-primary btn-sm" onclick="submitManualAdd('${type}',${gi})">${t('add')}</button>
+        <button class="btn btn-sm" onclick="this.closest('.manual-add-form').remove()">✕</button>
+      </div>`;
+  }else{
+    // Journal manual add: choose between "OpenAlex/Manual" (no auto-fetch) and "RSS feed"
+    form.innerHTML=`
+      <div style="display:flex;gap:8px;margin-bottom:6px;font-size:.88em;align-items:center;flex-wrap:wrap">
+        <span style="color:var(--text-3)">${t('manualAddJournalType')}:</span>
+        <label style="display:flex;align-items:center;gap:3px;cursor:pointer">
+          <input type="radio" name="ma_jtype_${gi}" value="manual" checked onchange="toggleManualJournalType(${gi})" style="accent-color:var(--accent)"> <span data-i-text="manualTypeLabel">手动记录</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:3px;cursor:pointer">
+          <input type="radio" name="ma_jtype_${gi}" value="rss" onchange="toggleManualJournalType(${gi})" style="accent-color:var(--accent)"> <span data-i-text="rssTypeLabel">RSS 订阅</span>
+        </label>
+      </div>
+      <input id="ma_name_${gi}" placeholder="${t('manualAddName')}" autofocus>
+      <input id="ma_id_${gi}" placeholder="${t('manualAddId')}">
+      <input id="ma_rssurl_${gi}" placeholder="${t('manualAddRssUrl')}" style="display:none;font-family:monospace;font-size:.85em">
+      <div id="ma_rsshint_${gi}" style="display:none;font-size:.78em;color:var(--text-3);margin:-2px 0 6px 0;line-height:1.5">${t('manualAddRssUrlHint')}</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-primary btn-sm" onclick="submitManualAdd('${type}',${gi})">${t('add')}</button>
+        <button class="btn btn-sm" onclick="this.closest('.manual-add-form').remove()">✕</button>
+      </div>`;
+  }
   container.appendChild(form);
-  form.querySelector('input').focus();
+  form.querySelector('input:not([type=radio])').focus();
+}
+function toggleManualJournalType(gi){
+  const radios=document.getElementsByName(`ma_jtype_${gi}`);
+  let val='manual';
+  for(const r of radios){if(r.checked){val=r.value;break}}
+  const rssInput=document.getElementById(`ma_rssurl_${gi}`);
+  const rssHint=document.getElementById(`ma_rsshint_${gi}`);
+  const idInput=document.getElementById(`ma_id_${gi}`);
+  if(val==='rss'){
+    rssInput.style.display='block';rssHint.style.display='block';rssInput.focus();
+    idInput.style.display='none';
+  }else{
+    rssInput.style.display='none';rssHint.style.display='none';
+    idInput.style.display='block';
+  }
+}
+// Generate a stable short hash from a URL — used as part of the entity ID.
+function shortHash(s){
+  let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h+s.charCodeAt(i))|0}
+  return Math.abs(h).toString(36);
 }
 function submitManualAdd(type,gi){
   const name=document.getElementById(`ma_name_${gi}`).value.trim();
-  if(!name){toast('Name required');return}
-  const id=document.getElementById(`ma_id_${gi}`)?.value.trim()||('manual:'+Date.now());
-  const entity={id,name,type:'manual'};
-  if(type==='scholars'){entity.inst=document.getElementById(`ma_inst_${gi}`)?.value.trim()||''}
+  if(!name){toast(t('manualAddName')+' ?');return}
+  let entity;
+  if(type==='journals'){
+    const radios=document.getElementsByName(`ma_jtype_${gi}`);
+    let jtype='manual';
+    for(const r of radios){if(r.checked){jtype=r.value;break}}
+    if(jtype==='rss'){
+      const url=(document.getElementById(`ma_rssurl_${gi}`).value||'').trim();
+      if(!url){toast(t('manualAddRssUrl'));return}
+      if(!/^https?:\/\//i.test(url)){toast(t('manualAddRssUrlInvalid'));return}
+      // Build a stable id from URL hash, and store the URL directly.
+      // Keep type='cnki_rss' for backward-compat with existing fetch logic
+      // (which also works for any RSS/Atom feed via rssUrl override).
+      entity={id:'rss:url:'+shortHash(url),name,type:'cnki_rss',rssUrl:url};
+    }else{
+      const id=document.getElementById(`ma_id_${gi}`)?.value.trim()||('manual:'+Date.now());
+      entity={id,name,issn:'',type:'manual'};
+    }
+  }else{
+    const id=document.getElementById(`ma_id_${gi}`)?.value.trim()||('manual:'+Date.now());
+    entity={id,name,type:'manual'};
+    entity.inst=document.getElementById(`ma_inst_${gi}`)?.value.trim()||'';
+  }
   addEntityToGroup(type,gi,entity);
   document.querySelectorAll('.manual-add-form').forEach(e=>e.remove());
 }
@@ -1130,44 +1619,22 @@ function _openAddPanel(type){
   const isJournal=type==='journal';
   panel.style.display='block';
   panel.innerHTML=`<div class="add-panel">
-    <div class="add-panel-header"><span class="add-panel-title">${t('searchLabel')} ${label}</span>
+    <div class="add-panel-header"><span class="add-panel-title">${t('searchLabel')} ${label} <span style="font-size:10px;color:var(--text-3);font-weight:400">(OpenAlex)</span></span>
       <button class="btn-ghost" onclick="document.getElementById('${panelId}').style.display='none'">✕</button></div>
-    ${isJournal?`<div style="margin-bottom:8px;display:flex;align-items:center;gap:8px">
-      <span style="font-size:11px;color:var(--text-3)">${t('dataSource')}</span>
-      <div class="source-toggle" id="journalSourceToggle">
-        <button class="active" onclick="setJournalSource('openalex')">OpenAlex</button>
-        <button onclick="setJournalSource('cnki_rss')">CNKI RSS</button>
-      </div></div>`:''}
     <div class="add-search-row">
       <input id="${type}SearchInput" placeholder="${type==='scholar'?t('searchScholar'):t('searchJournal2')}" onkeydown="if(event.key==='Enter')doSearch('${type}')">
       <button class="btn btn-primary btn-sm" onclick="doSearch('${type}')">${t('searchLabel')}</button>
     </div>
-    ${isJournal?`<div id="cnkiRssHelp" style="display:none;font-size:11px;color:var(--text-3);margin-bottom:6px;line-height:1.5">${t('cnkiHelp')}</div>`:''}
+    ${isJournal?`<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;line-height:1.5;padding:6px 8px;background:var(--surface-alt);border-radius:5px">${t('cnkiHelp')}</div>`:''}
     <div id="${type}Results"></div>
   </div>`;
   document.getElementById(`${type}SearchInput`).focus();
-}
-let journalSearchSource='openalex';
-function setJournalSource(src){
-  journalSearchSource=src;
-  document.querySelectorAll('#journalSourceToggle button').forEach(b=>b.classList.toggle('active',b.textContent.includes(src==='openalex'?'OpenAlex':'RSS')));
-  document.getElementById('cnkiRssHelp').style.display=src==='cnki_rss'?'block':'none';
-  document.getElementById('journalResults').innerHTML='';
 }
 async function doSearch(type){
   const input=document.getElementById(`${type}SearchInput`);const resultsDiv=document.getElementById(`${type}Results`);
   const q=input.value.trim();if(!q)return;
   resultsDiv.innerHTML=`<p style="color:var(--text-3);font-size:11px;padding:4px 0">${t('searching')}</p>`;
-  const groupType=type==='scholar'?'scholars':'journals';
   try{
-    if(type==='journal'&&journalSearchSource==='cnki_rss'){
-      const qLower=q.toUpperCase();let matches=[{id:'rss:'+qLower,name:q+` (CNKI RSS)`,type:'cnki_rss',rssCode:qLower}];
-      resultsDiv.innerHTML='<div class="add-results">'+matches.map(r=>{
-        const added=allJournals().find(j=>j.id===r.id);
-        return `<div class="add-result"><div><div class="add-result-name">${esc(r.name)}</div><div class="add-result-meta">CNKI RSS · Code: ${esc(r.rssCode)}</div></div>
-          <button class="btn btn-sm${added?' ':' btn-outline'}" ${added?'disabled style="opacity:.5"':`onclick="addSearchResult(this,'journals',${addTargetGroup},${JSON.stringify(r).replace(/"/g,'&quot;')})"`}>${added?t('added'):t('add')}</button></div>`;
-      }).join('')+'</div>';return;
-    }
     const results=type==='scholar'?await searchAuthorsAPI(q):await searchSourcesAPI(q);
     if(!results.length){resultsDiv.innerHTML=`<p style="color:var(--text-3);font-size:11px;padding:4px 0">${t('noResult')}</p>`;return}
     resultsDiv.innerHTML='<div class="add-results">'+results.map(r=>{
@@ -1228,7 +1695,377 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('op
 // ════════════════════════════════════════════════════════════════
 // SETTINGS: PROXY
 // ════════════════════════════════════════════════════════════════
-// Proxy URL (kept in localStorage for CNKI RSS fallback, no UI needed)
+function saveProxy(){
+  const val=(document.getElementById('proxyInput').value||'').trim();
+  if(val) localStorage.setItem('sp3_proxy',val);
+  else localStorage.removeItem('sp3_proxy');
+  toast(t('cloudSaved'));
+}
+
+// ════════════════════════════════════════════════════════════════
+// SETTINGS: CLOUD SYNC (GitHub Gist)
+// Stores token + gist id in localStorage. Upload/download full backup
+// as a single JSON file inside a secret Gist.
+// ════════════════════════════════════════════════════════════════
+const GIST_FILENAME='scholarpulse-backup.json';
+function cloudGetConfig(){
+  return{
+    token:localStorage.getItem('sp3_cloudToken')||'',
+    gistId:localStorage.getItem('sp3_cloudGistId')||'',
+    auto:localStorage.getItem('sp3_cloudAutoSync')==='1',
+  };
+}
+function cloudSetStatus(msg,isError){
+  const el=document.getElementById('cloudSyncStatus');
+  if(!el)return;
+  el.textContent=msg||'';
+  el.style.color=isError?'var(--danger)':'var(--text-3)';
+}
+function cloudFormatTime(){
+  const d=new Date();const p=n=>String(n).padStart(2,'0');
+  return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+function saveCloudConfig(){
+  const token=(document.getElementById('cloudToken').value||'').trim();
+  const gistId=(document.getElementById('cloudGistId').value||'').trim();
+  const auto=document.getElementById('cloudAutoSync').checked;
+  if(token) localStorage.setItem('sp3_cloudToken',token);
+  else localStorage.removeItem('sp3_cloudToken');
+  if(gistId) localStorage.setItem('sp3_cloudGistId',gistId);
+  else localStorage.removeItem('sp3_cloudGistId');
+  localStorage.setItem('sp3_cloudAutoSync',auto?'1':'0');
+  toast(t('cloudSaved'));
+}
+function cloudBuildPayload(){
+  // Same shape as exportData, minus cloud credentials (never roundtrip secrets through the gist)
+  return{
+    version:4,exportDate:new Date().toISOString(),
+    scholarGroups,journalGroups,works,
+    readSet:[...readSet],starSet:[...starSet],
+    proxy:localStorage.getItem('sp3_proxy')||'',
+    lang,fontSize,yearRange,pageSize,
+    collapsedGroups:[...collapsedGroups],
+  };
+}
+async function cloudSyncUpload(manual=true){
+  const{token,gistId}=cloudGetConfig();
+  if(!token){cloudSetStatus(t('cloudNoToken'),true);if(manual)toast(t('cloudNoToken'));return false}
+  cloudSetStatus(t('cloudUploading'));
+  const payload=cloudBuildPayload();
+  const body={
+    description:'ScholarPulse backup',
+    files:{[GIST_FILENAME]:{content:JSON.stringify(payload,null,2)}},
+  };
+  try{
+    const isUpdate=!!gistId;
+    if(!isUpdate) body.public=false; // create as secret gist
+    const url=isUpdate?`https://api.github.com/gists/${encodeURIComponent(gistId)}`:'https://api.github.com/gists';
+    const r=await fetch(url,{
+      method:isUpdate?'PATCH':'POST',
+      headers:{
+        'Authorization':`Bearer ${token}`,
+        'Accept':'application/vnd.github+json',
+        'Content-Type':'application/json',
+        'X-GitHub-Api-Version':'2022-11-28',
+      },
+      body:JSON.stringify(body),
+    });
+    if(!r.ok){
+      const errTxt=await r.text();
+      throw new Error(`HTTP ${r.status}: ${errTxt.slice(0,200)}`);
+    }
+    const data=await r.json();
+    if(!isUpdate&&data.id){
+      localStorage.setItem('sp3_cloudGistId',data.id);
+      const idInput=document.getElementById('cloudGistId');
+      if(idInput) idInput.value=data.id;
+    }
+    cloudSetStatus(t('cloudUploaded').replace('{time}',cloudFormatTime()));
+    if(manual) toast(t('cloudUploaded').replace('{time}',cloudFormatTime()));
+    return true;
+  }catch(e){
+    console.error('Cloud upload error:',e);
+    cloudSetStatus(t('cloudError')+e.message,true);
+    if(manual) toast(t('cloudError')+e.message);
+    return false;
+  }
+}
+async function cloudSyncDownload(){
+  const{token,gistId}=cloudGetConfig();
+  if(!token){cloudSetStatus(t('cloudNoToken'),true);toast(t('cloudNoToken'));return}
+  if(!gistId){cloudSetStatus(t('cloudNoGist'),true);toast(t('cloudNoGist'));return}
+  if(!confirm(t('cloudConfirmDownload')))return;
+  cloudSetStatus(t('cloudDownloading'));
+  try{
+    const r=await fetch(`https://api.github.com/gists/${encodeURIComponent(gistId)}`,{
+      headers:{
+        'Authorization':`Bearer ${token}`,
+        'Accept':'application/vnd.github+json',
+        'X-GitHub-Api-Version':'2022-11-28',
+      },
+    });
+    if(!r.ok){
+      const errTxt=await r.text();
+      throw new Error(`HTTP ${r.status}: ${errTxt.slice(0,200)}`);
+    }
+    const gist=await r.json();
+    const file=gist.files&&gist.files[GIST_FILENAME];
+    if(!file||!file.content)throw new Error(GIST_FILENAME+' not found in gist');
+    // If truncated, fetch raw
+    let content=file.content;
+    if(file.truncated&&file.raw_url){
+      const rr=await fetch(file.raw_url);if(rr.ok) content=await rr.text();
+    }
+    const data=JSON.parse(content);
+    // Apply (mirrors importDataFile)
+    if(data.scholarGroups)scholarGroups=data.scholarGroups;
+    if(data.journalGroups)journalGroups=data.journalGroups;
+    if(data.works)works=data.works;
+    if(data.readSet)readSet=new Set(data.readSet);
+    if(data.starSet)starSet=new Set(data.starSet);
+    if(data.proxy)localStorage.setItem('sp3_proxy',data.proxy);
+    if(data.lang){lang=data.lang;localStorage.setItem('sp3_lang',lang)}
+    if(data.fontSize){fontSize=data.fontSize;localStorage.setItem('sp3_fs',fontSize);applyFontSize()}
+    if(data.yearRange){yearRange=data.yearRange;localStorage.setItem('sp3_yearRange',yearRange);const ys=document.getElementById('yearRangeSelect');if(ys)ys.value=yearRange}
+    if(data.pageSize){pageSize=data.pageSize;localStorage.setItem('sp3_pageSize',pageSize)}
+    if(data.collapsedGroups){collapsedGroups=new Set(data.collapsedGroups);saveCollapsed()}
+    save();
+    applyI18n();renderAll();renderScholarGroups();renderJournalGroups();
+    cloudSetStatus(t('cloudDownloaded').replace('{time}',cloudFormatTime()));
+    toast(t('cloudDownloaded').replace('{time}',cloudFormatTime()));
+  }catch(e){
+    console.error('Cloud download error:',e);
+    cloudSetStatus(t('cloudError')+e.message,true);
+    toast(t('cloudError')+e.message);
+  }
+}
+// Debounced auto-sync: called from save() indirectly.
+// We wrap save() by instrumenting via a trigger function rather than
+// monkey-patching, to keep control flow obvious.
+let _cloudAutoTimer=null;
+function cloudAutoSyncTrigger(){
+  const{token,gistId,auto}=cloudGetConfig();
+  if(!auto||!token)return;
+  // Require a gist id — otherwise we'd spam-create gists on every save
+  if(!gistId)return;
+  if(_cloudAutoTimer) clearTimeout(_cloudAutoTimer);
+  _cloudAutoTimer=setTimeout(()=>{cloudSyncUpload(false)},30000); // 30s debounce
+}
+
+// ════════════════════════════════════════════════════════════════
+// SETTINGS: LOCAL FILE SYNC (File System Access API)
+// Persists a FileSystemFileHandle in IndexedDB, then read/writes on demand
+// or auto-writes (debounced) when data changes. Stays entirely local —
+// users can point at a Jianguoyun / Dropbox / OneDrive folder to get
+// cross-device sync for free, via the desktop sync client.
+// ════════════════════════════════════════════════════════════════
+const LOCAL_IDB_NAME='sp3_local',LOCAL_IDB_STORE='handles',LOCAL_HANDLE_KEY='fileHandle';
+// Tiny IndexedDB key-value helpers. We keep them local to this section
+// (no external dep) since we only need one key.
+function _idbOpen(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(LOCAL_IDB_NAME,1);
+    req.onupgradeneeded=()=>{req.result.createObjectStore(LOCAL_IDB_STORE)};
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+}
+async function _idbSet(key,val){
+  const db=await _idbOpen();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(LOCAL_IDB_STORE,'readwrite');
+    tx.objectStore(LOCAL_IDB_STORE).put(val,key);
+    tx.oncomplete=()=>{db.close();resolve()};
+    tx.onerror=()=>{db.close();reject(tx.error)};
+  });
+}
+async function _idbGet(key){
+  const db=await _idbOpen();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(LOCAL_IDB_STORE,'readonly');
+    const r=tx.objectStore(LOCAL_IDB_STORE).get(key);
+    r.onsuccess=()=>{db.close();resolve(r.result)};
+    r.onerror=()=>{db.close();reject(r.error)};
+  });
+}
+async function _idbDel(key){
+  const db=await _idbOpen();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(LOCAL_IDB_STORE,'readwrite');
+    tx.objectStore(LOCAL_IDB_STORE).delete(key);
+    tx.oncomplete=()=>{db.close();resolve()};
+    tx.onerror=()=>{db.close();reject(tx.error)};
+  });
+}
+let _localHandle=null; // in-memory reference to current file handle
+function localIsSupported(){return typeof window.showSaveFilePicker==='function'}
+function localSetStatus(msg,isError){
+  const el=document.getElementById('localSyncStatus');
+  if(!el)return;
+  el.textContent=msg||'';
+  el.style.color=isError?'var(--danger)':'var(--text-3)';
+}
+function localUpdateFileNameDisplay(){
+  const el=document.getElementById('localSyncFileName');
+  if(!el)return;
+  if(_localHandle&&_localHandle.name){
+    el.textContent=_localHandle.name;
+    el.style.fontFamily='monospace';el.style.color='var(--text)';
+  }else{
+    el.textContent=t('localSyncNone');
+    el.style.fontFamily='';el.style.color='var(--text-3)';
+  }
+}
+async function localPickFile(){
+  if(!localIsSupported()){toast(t('localSyncUnsupported'));return}
+  try{
+    const handle=await window.showSaveFilePicker({
+      suggestedName:'scholarpulse-backup.json',
+      types:[{description:'JSON',accept:{'application/json':['.json']}}],
+    });
+    _localHandle=handle;
+    await _idbSet(LOCAL_HANDLE_KEY,handle);
+    localUpdateFileNameDisplay();
+    localSetStatus(t('localPicked').replace('{name}',handle.name));
+    toast(t('localPicked').replace('{name}',handle.name));
+    // Immediately write current state so user sees the file populated
+    await localSyncWrite(false);
+  }catch(e){
+    if(e.name==='AbortError')return; // user cancelled
+    console.error('localPickFile:',e);
+    localSetStatus(t('localError')+e.message,true);
+  }
+}
+async function localEnsurePermission(handle,mode){
+  if(!handle||!handle.queryPermission) return 'granted';
+  const opts={mode};
+  const state=await handle.queryPermission(opts);
+  if(state==='granted') return 'granted';
+  const req=await handle.requestPermission(opts);
+  return req;
+}
+async function localSyncWrite(manual){
+  if(!localIsSupported()){if(manual)toast(t('localSyncUnsupported'));return false}
+  if(!_localHandle){
+    localSetStatus(t('localNoHandle'),true);
+    if(manual) toast(t('localNoHandle'));
+    return false;
+  }
+  try{
+    // Permission check. Browsers drop write permission between sessions;
+    // a user gesture is required to re-grant. If this isn't a manual
+    // action and permission isn't already granted, bail silently — the
+    // debounced auto-writer shouldn't pop a permission prompt out of nowhere.
+    const perm=manual?await localEnsurePermission(_localHandle,'readwrite')
+                     :await _localHandle.queryPermission({mode:'readwrite'});
+    if(perm!=='granted'){
+      localSetStatus(t('localPermDenied'),true);
+      if(manual) toast(t('localPermDenied'));
+      return false;
+    }
+    localSetStatus(t('localWriting'));
+    const payload=cloudBuildPayload(); // reuse the cloud payload builder
+    const w=await _localHandle.createWritable();
+    await w.write(JSON.stringify(payload,null,2));
+    await w.close();
+    const msg=t('localWritten').replace('{time}',cloudFormatTime());
+    localSetStatus(msg);
+    if(manual) toast(msg);
+    return true;
+  }catch(e){
+    console.error('localSyncWrite:',e);
+    // NotFoundError typically means the file was deleted or the handle expired
+    if(e.name==='NotFoundError'){
+      localSetStatus(t('localHandleLost'),true);
+      if(manual) toast(t('localHandleLost'));
+      _localHandle=null;await _idbDel(LOCAL_HANDLE_KEY);
+      localUpdateFileNameDisplay();
+    }else{
+      localSetStatus(t('localError')+e.message,true);
+      if(manual) toast(t('localError')+e.message);
+    }
+    return false;
+  }
+}
+async function localSyncRead(){
+  if(!localIsSupported()){toast(t('localSyncUnsupported'));return}
+  if(!_localHandle){toast(t('localNoHandle'));return}
+  if(!confirm(t('localConfirmRead')))return;
+  try{
+    const perm=await localEnsurePermission(_localHandle,'read');
+    if(perm!=='granted'){toast(t('localPermDenied'));return}
+    localSetStatus(t('localReading'));
+    const file=await _localHandle.getFile();
+    const txt=await file.text();
+    const data=JSON.parse(txt);
+    // Mirror cloudSyncDownload restore logic
+    if(data.scholarGroups)scholarGroups=data.scholarGroups;
+    if(data.journalGroups)journalGroups=data.journalGroups;
+    if(data.works)works=data.works;
+    if(data.readSet)readSet=new Set(data.readSet);
+    if(data.starSet)starSet=new Set(data.starSet);
+    if(data.proxy)localStorage.setItem('sp3_proxy',data.proxy);
+    if(data.lang){lang=data.lang;localStorage.setItem('sp3_lang',lang)}
+    if(data.fontSize){fontSize=data.fontSize;localStorage.setItem('sp3_fs',fontSize);applyFontSize()}
+    if(data.yearRange){yearRange=data.yearRange;localStorage.setItem('sp3_yearRange',yearRange);const ys=document.getElementById('yearRangeSelect');if(ys)ys.value=yearRange}
+    if(data.pageSize){pageSize=data.pageSize;localStorage.setItem('sp3_pageSize',pageSize)}
+    if(data.collapsedGroups){collapsedGroups=new Set(data.collapsedGroups);saveCollapsed()}
+    save();
+    applyI18n();renderAll();renderScholarGroups();renderJournalGroups();
+    const msg=t('localRead').replace('{time}',cloudFormatTime());
+    localSetStatus(msg);toast(msg);
+  }catch(e){
+    console.error('localSyncRead:',e);
+    if(e.name==='NotFoundError'){
+      localSetStatus(t('localHandleLost'),true);toast(t('localHandleLost'));
+      _localHandle=null;await _idbDel(LOCAL_HANDLE_KEY);
+      localUpdateFileNameDisplay();
+    }else{
+      localSetStatus(t('localError')+e.message,true);toast(t('localError')+e.message);
+    }
+  }
+}
+async function localClearHandle(){
+  _localHandle=null;
+  await _idbDel(LOCAL_HANDLE_KEY);
+  localStorage.setItem('sp3_localAutoSync','0');
+  const cb=document.getElementById('localAutoSync');if(cb)cb.checked=false;
+  localUpdateFileNameDisplay();
+  localSetStatus('');
+  toast(t('localSyncNone'));
+}
+async function localInit(){
+  const section=document.getElementById('localSyncSection');
+  if(!section) return;
+  if(!localIsSupported()){
+    document.getElementById('localSyncSupported').style.display='none';
+    document.getElementById('localSyncUnsupported').style.display='block';
+    return;
+  }
+  // Restore handle from IDB if one was saved previously
+  try{
+    const saved=await _idbGet(LOCAL_HANDLE_KEY);
+    if(saved) _localHandle=saved;
+  }catch(e){console.warn('localInit: IDB get failed',e)}
+  localUpdateFileNameDisplay();
+  // Restore auto-sync preference
+  const cb=document.getElementById('localAutoSync');
+  if(cb){
+    cb.checked=localStorage.getItem('sp3_localAutoSync')==='1';
+    cb.addEventListener('change',()=>{
+      localStorage.setItem('sp3_localAutoSync',cb.checked?'1':'0');
+    });
+  }
+}
+// Debounced auto-write, parallel to cloudAutoSyncTrigger.
+// Faster cadence (10s vs 30s) since local writes are free and non-destructive.
+let _localAutoTimer=null;
+function localAutoSyncTrigger(){
+  if(!localIsSupported()||!_localHandle) return;
+  if(localStorage.getItem('sp3_localAutoSync')!=='1') return;
+  if(_localAutoTimer) clearTimeout(_localAutoTimer);
+  _localAutoTimer=setTimeout(()=>{localSyncWrite(false)},10000); // 10s debounce
+}
 
 // ════════════════════════════════════════════════════════════════
 // IMPORT — Generalized (BibTeX, RIS, CSV, Lines, File Upload)
@@ -1349,6 +2186,64 @@ applyFontSize();
 document.getElementById('langToggleBtn').textContent=lang==='zh'?'EN':'中';
 applyI18n();
 renderAll();renderScholarGroups();renderJournalGroups();
+// ════════════════════════════════════════════════════════════════
+// VERSION CHECK — show a banner when version.txt reports a newer version.
+// Bump APP_VERSION together with version.txt on every release.
+// ════════════════════════════════════════════════════════════════
+const APP_VERSION='1.1.0';
+async function checkForUpdate(){
+  try{
+    // cache:'no-store' bypasses both the browser cache and any intermediate CDN cache
+    const r=await fetch('version.txt?t='+Date.now(),{cache:'no-store'});
+    if(!r.ok)return;
+    const latest=(await r.text()).trim();
+    if(!latest||latest===APP_VERSION)return;
+    // Respect user dismissal: don't re-show the same version they already dismissed
+    if(localStorage.getItem('sp3_updateDismissed')===latest)return;
+    const bannerText=lang==='zh'
+      ?`🎉 发现新版本 ${latest}（当前 ${APP_VERSION}）`
+      :`🎉 New version ${latest} available (current ${APP_VERSION})`;
+    // Keep the above for detailed version-aware text.
+    // The short fallback text from updateAvailable is used before version.txt loads.
+    const t=document.getElementById('updateBannerText');
+    if(t) t.textContent=bannerText;
+    const b=document.getElementById('updateBanner');
+    if(b) b.style.display='flex';
+    window._latestVersion=latest;
+  }catch(e){/* offline / network error — ignore silently */}
+}
+function applyUpdate(){
+  // Clear the dismissal flag and hard-reload with a cache-busting query param
+  localStorage.removeItem('sp3_updateDismissed');
+  const url=location.pathname+'?v='+Date.now();
+  location.replace(url);
+}
+function dismissUpdate(){
+  if(window._latestVersion){
+    localStorage.setItem('sp3_updateDismissed',window._latestVersion);
+  }
+  const b=document.getElementById('updateBanner');
+  if(b) b.style.display='none';
+}
+// Run check 2 seconds after init (don't block initial render)
+setTimeout(checkForUpdate,2000);
+// Also re-check when the tab becomes visible again (user switches back after a while)
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible') checkForUpdate();
+});
+// Populate settings inputs from localStorage
+(function initSettingsInputs(){
+  const proxyInput=document.getElementById('proxyInput');
+  if(proxyInput) proxyInput.value=localStorage.getItem('sp3_proxy')||'';
+  const cloudToken=document.getElementById('cloudToken');
+  if(cloudToken) cloudToken.value=localStorage.getItem('sp3_cloudToken')||'';
+  const cloudGistId=document.getElementById('cloudGistId');
+  if(cloudGistId) cloudGistId.value=localStorage.getItem('sp3_cloudGistId')||'';
+  const cloudAuto=document.getElementById('cloudAutoSync');
+  if(cloudAuto) cloudAuto.checked=localStorage.getItem('sp3_cloudAutoSync')==='1';
+})();
+// Initialize local file sync (async — restores handle from IDB if present)
+if(typeof localInit==='function') localInit();
 </script>
 </body>
 </html>
