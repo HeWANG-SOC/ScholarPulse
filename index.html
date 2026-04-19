@@ -298,18 +298,32 @@ input,select{font-family:var(--font-b)}
           <h2 class="section-title" data-i-text="settingsTitle">设置</h2>
         </div>
       </div>
-      <!-- 1. Data management -->
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px">
-        <h3 style="font-size:1.05em;font-weight:600;margin-bottom:8px" data-i-text="dataManagement">数据管理</h3>
-        <p style="font-size:.88em;color:var(--text-2);margin-bottom:10px" data-i-text="dataManagementDesc">所有数据保存在浏览器本地。建议定期导出备份，清理浏览器数据或换设备后可通过导入恢复。</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn" onclick="exportData()" data-i-text="exportBtn">📦 导出全部数据</button>
-          <button class="btn" onclick="document.getElementById('importFileInput').click()" data-i-text="importBackup">📂 导入数据备份</button>
-          <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importDataFile(event)">
-          <button class="btn btn-danger" onclick="clearAllData()" data-i-text="clearAll">🗑 清除全部数据</button>
+      <!-- 1a. Local File Sync (File System Access API) -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px" id="localSyncSection">
+        <h3 style="font-size:1.05em;font-weight:600;margin-bottom:8px" data-i-text="localSyncTitle">💾 本地文件自动保存</h3>
+        <p style="font-size:.88em;color:var(--text-2);margin-bottom:10px" data-i-text="localSyncDesc">选定一个本地文件夹后，ScholarPulse 会自动把数据写入该文件夹。</p>
+        <div id="localSyncUnsupported" style="display:none;font-size:.88em;color:var(--danger);background:var(--surface-alt);padding:8px 12px;border-radius:var(--r);margin-bottom:10px" data-i-text="localSyncUnsupported">⚠ 当前浏览器不支持 File System Access API。请使用 Chrome / Edge / Opera，并通过 https:// 访问（GitHub Pages 即可）。</div>
+        <div id="localSyncSupported">
+          <div style="margin-bottom:10px;padding:8px 12px;background:var(--surface-alt);border-radius:var(--r);font-size:.88em">
+            <span style="color:var(--text-3)" data-i-text="localSyncFileLabel">当前文件：</span>
+            <span id="localSyncFileName" style="font-family:monospace;color:var(--text)" data-i-text="localSyncNone">未配置</span>
+          </div>
+          <div style="margin-bottom:10px">
+            <label style="font-size:.85em;font-weight:500;display:flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="checkbox" id="localAutoSync" style="accent-color:var(--accent)">
+              <span data-i-text="localAutoSyncLabel">开启自动保存（数据变动后 10 秒自动写入）</span>
+            </label>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <button class="btn btn-primary" onclick="localPickFile()" data-i-text="localPickBtn">选择本地文件</button>
+            <button class="btn btn-outline" onclick="localSyncWrite(true)" data-i-text="localWriteBtn">↑ 立即写入</button>
+            <button class="btn btn-outline" onclick="localSyncRead()" data-i-text="localReadBtn">↓ 从本地文件恢复</button>
+            <button class="btn btn-sm" onclick="localClearHandle()" data-i-text="localClearBtn">清除配置</button>
+            <span id="localSyncStatus" style="font-size:.85em;color:var(--text-3)"></span>
+          </div>
         </div>
       </div>
-      <!-- 2. Cloud Sync (GitHub Gist) -->
+      <!-- 1b. Cloud Sync (GitHub Gist) -->
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px">
         <h3 style="font-size:1.05em;font-weight:600;margin-bottom:8px" data-i-text="cloudSyncTitle">☁ 云存储同步</h3>
         <p style="font-size:.88em;color:var(--text-2);margin-bottom:10px" data-i-text="cloudSyncDesc">通过 GitHub Gist 将数据自动备份到云端，防止浏览器数据丢失。需要 GitHub 账户和 Personal Access Token（仅需 gist 权限）。Token 和 Gist ID 仅保存在本地浏览器。</p>
@@ -338,29 +352,15 @@ input,select{font-family:var(--font-b)}
           <span id="cloudSyncStatus" style="font-size:.85em;color:var(--text-3)"></span>
         </div>
       </div>
-      <!-- 2b. Local File Sync (File System Access API) -->
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px" id="localSyncSection">
-        <h3 style="font-size:1.05em;font-weight:600;margin-bottom:8px" data-i-text="localSyncTitle">💾 本地文件自动保存</h3>
-        <p style="font-size:.88em;color:var(--text-2);margin-bottom:10px" data-i-text="localSyncDesc">选定一个本地 JSON 文件后，ScholarPulse 会自动把数据写入该文件——数据完全不经过任何服务器。把文件放到坚果云 / Dropbox / OneDrive 等同步盘的文件夹内，即可借助这些客户端实现跨设备同步。</p>
-        <div id="localSyncUnsupported" style="display:none;font-size:.88em;color:var(--danger);background:var(--surface-alt);padding:8px 12px;border-radius:var(--r);margin-bottom:10px" data-i-text="localSyncUnsupported">⚠ 当前浏览器不支持 File System Access API。请使用 Chrome / Edge / Opera，并通过 https:// 访问（GitHub Pages 即可）。</div>
-        <div id="localSyncSupported">
-          <div style="margin-bottom:10px;padding:8px 12px;background:var(--surface-alt);border-radius:var(--r);font-size:.88em">
-            <span style="color:var(--text-3)" data-i-text="localSyncFileLabel">当前文件：</span>
-            <span id="localSyncFileName" style="font-family:monospace;color:var(--text)" data-i-text="localSyncNone">未配置</span>
-          </div>
-          <div style="margin-bottom:10px">
-            <label style="font-size:.85em;font-weight:500;display:flex;align-items:center;gap:6px;cursor:pointer">
-              <input type="checkbox" id="localAutoSync" style="accent-color:var(--accent)">
-              <span data-i-text="localAutoSyncLabel">开启自动保存（数据变动后 10 秒自动写入）</span>
-            </label>
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            <button class="btn btn-primary" onclick="localPickFile()" data-i-text="localPickBtn">选择本地文件</button>
-            <button class="btn btn-outline" onclick="localSyncWrite(true)" data-i-text="localWriteBtn">↑ 立即写入</button>
-            <button class="btn btn-outline" onclick="localSyncRead()" data-i-text="localReadBtn">↓ 从本地文件恢复</button>
-            <button class="btn btn-sm" onclick="localClearHandle()" data-i-text="localClearBtn">清除配置</button>
-            <span id="localSyncStatus" style="font-size:.85em;color:var(--text-3)"></span>
-          </div>
+      <!-- 2. Data management -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px">
+        <h3 style="font-size:1.05em;font-weight:600;margin-bottom:8px" data-i-text="dataManagement">数据管理</h3>
+        <p style="font-size:.88em;color:var(--text-2);margin-bottom:10px" data-i-text="dataManagementDesc">所有数据保存在浏览器本地。建议定期导出备份，清理浏览器数据或换设备后可通过导入恢复。</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn" onclick="exportData()" data-i-text="exportBtn">📦 导出全部数据</button>
+          <button class="btn" onclick="document.getElementById('importFileInput').click()" data-i-text="importBackup">📂 导入数据备份</button>
+          <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importDataFile(event)">
+          <button class="btn btn-danger" onclick="clearAllData()" data-i-text="clearAll">🗑 清除全部数据</button>
         </div>
       </div>
       <!-- 3. Import articles -->
@@ -515,7 +515,7 @@ const I={
     localError:'本地同步出错：',
     guidebookTitle:'📘 使用指南',
     guidebook:`
-<p style="margin-bottom:14px;padding:10px 14px;background:var(--accent-light);border-radius:6px;color:var(--accent);font-weight:500;line-height:1.7">⚠ <strong>重要：数据安全提示</strong><br>所有数据保存在浏览器本地存储（localStorage）中。清除浏览器数据、更换浏览器或设备后数据将丢失。<strong>强烈建议：</strong>① 在「设置 → 数据管理」中定期导出备份；② 在「设置 → 云存储同步」中配置 GitHub Gist 云端自动备份。</p>
+<p style="margin-bottom:14px;padding:10px 14px;background:var(--accent-light);border-radius:6px;color:var(--accent);font-weight:500;line-height:1.7">⚠ <strong>重要：数据安全提示</strong><br>所有数据保存在浏览器本地存储（localStorage）中。清除浏览器数据、更换浏览器或设备后数据将丢失。<strong>强烈建议：</strong>① 在「设置 → 本地文件自动保存 / 云存储同步」中配置本地自动备份或 GitHub Gist 云端自动备份；或 ② 在「设置 → 数据管理」中定期导出备份。</p>
 
 <h3 style="font-family:var(--font-d);font-size:1.2em;font-weight:600;margin-top:22px;margin-bottom:10px;color:var(--text);border-bottom:1px solid var(--border-light);padding-bottom:6px">一、基本概念</h3>
 <p>ScholarPulse 是单文件 HTML 学术追踪工具，用于订阅学者和期刊的最新文献。数据源包括：</p>
@@ -687,7 +687,7 @@ const I={
     cloudConfirmDownload:'Downloading from cloud will overwrite all local data. Continue?',
     cloudError:'Cloud sync error: ',
     localSyncTitle:'💾 Local File Auto-save',
-    localSyncDesc:'Pick a local JSON file and ScholarPulse will automatically write data to it — no server involved. Drop the file into a Jianguoyun / Dropbox / OneDrive sync folder and let the desktop client handle cross-device sync.',
+    localSyncDesc:'Pick a local folder and ScholarPulse will automatically write data to it.',
     localSyncUnsupported:'⚠ Your browser does not support the File System Access API. Please use Chrome / Edge / Opera and access via https:// (GitHub Pages works).',
     localSyncFileLabel:'Current file:',localSyncNone:'Not configured',
     localAutoSyncLabel:'Enable auto-save (write 10s after any change)',
@@ -700,7 +700,7 @@ const I={
     localError:'Local sync error: ',
     guidebookTitle:'📘 User Guide',
     guidebook:`
-<p style="margin-bottom:14px;padding:10px 14px;background:var(--accent-light);border-radius:6px;color:var(--accent);font-weight:500;line-height:1.7">⚠ <strong>Important: Data Safety</strong><br>All data is stored in your browser's local storage (localStorage). Clearing browser data, switching browsers, or switching devices will cause data loss. <strong>Strongly recommended:</strong> ① Regularly export backups via "Settings → Data Management"; ② Configure GitHub Gist cloud sync in "Settings → Cloud Sync".</p>
+<p style="margin-bottom:14px;padding:10px 14px;background:var(--accent-light);border-radius:6px;color:var(--accent);font-weight:500;line-height:1.7">⚠ <strong>Important: Data Safety</strong><br>All data is stored in your browser's local storage (localStorage). Clearing browser data, switching browsers, or switching devices will cause data loss. <strong>Strongly recommended:</strong> ① Configure local file sync or GitHub Gist cloud sync in "Settings → Local File Sync / Cloud Sync"; or ② Regularly export backups via "Settings → Data Management".</p>
 
 <h3 style="font-family:var(--font-d);font-size:1.2em;font-weight:600;margin-top:22px;margin-bottom:10px;color:var(--text);border-bottom:1px solid var(--border-light);padding-bottom:6px">1. Concepts</h3>
 <p>ScholarPulse is a single-file HTML academic tracker for subscribing to the latest works of scholars and journals. Data sources:</p>
