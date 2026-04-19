@@ -431,6 +431,7 @@ let works = JSON.parse(localStorage.getItem('sp3_works')||'[]');
 let readSet = new Set(JSON.parse(localStorage.getItem('sp3_read')||'[]'));
 let starSet = new Set(JSON.parse(localStorage.getItem('sp3_star')||'[]'));
 let expandedWork = null, isLoading = false;
+let expandedFilters = new Set();  // tracks which filter panels are expanded
 let selectedTopics = new Set(), selectedJournals = new Set(), selectedAuthors = new Set(), selectedGroups = new Set();
 let currentPage = 1, pageSize = parseInt(localStorage.getItem('sp3_pageSize'))||20;
 let expandedEntity = null;
@@ -441,6 +442,7 @@ let expandedEntity = null;
 let lang = localStorage.getItem('sp3_lang')||'zh';
 const I={
   zh:{
+    showAll:'显示全部 {n} 个',
     updateAvailable:'🎉 有新版本可用',
     updateApply:'刷新升级',
     updateDismiss:'稍后',
@@ -502,7 +504,7 @@ const I={
     cloudConfirmDownload:'从云端下载将覆盖本地所有数据，确定继续？',
     cloudError:'云同步出错：',
     localSyncTitle:'💾 本地文件自动保存',
-    localSyncDesc:'选定一个本地 JSON 文件后，ScholarPulse 会自动把数据写入该文件——数据完全不经过任何服务器。把文件放到坚果云 / Dropbox / OneDrive 等同步盘的文件夹内，即可借助这些客户端实现跨设备同步。',
+    localSyncDesc:'选定一个本地文件夹后，ScholarPulse 会自动把数据写入该文件夹。',
     localSyncUnsupported:'⚠ 当前浏览器不支持 File System Access API。请使用 Chrome / Edge / Opera，并通过 https:// 访问（GitHub Pages 即可）。',
     localSyncFileLabel:'当前文件：',localSyncNone:'未配置',
     localAutoSyncLabel:'开启自动保存（数据变动后 10 秒自动写入）',
@@ -626,6 +628,7 @@ const I={
 `,
   },
   en:{
+    showAll:'Show all {n}',
     updateAvailable:'🎉 Update available',
     updateApply:'Reload',
     updateDismiss:'Later',
@@ -1140,20 +1143,58 @@ function switchTab(name){
 function renderTopicFilter(){
   const c={};works.forEach(w=>(w.topics||[]).forEach(t=>{c[t]=(c[t]||0)+1}));
   const q=(document.getElementById('topicSearchInput').value||'').toLowerCase();
-  let e=Object.entries(c).sort((a,b)=>a[0].localeCompare(b[0]));if(q)e=e.filter(([t])=>t.toLowerCase().includes(q));
-  document.getElementById('topicList').innerHTML=e.slice(0,50).map(([t,n])=>`<label class="sb-check-item"><input type="checkbox" ${selectedTopics.has(t)?'checked':''} onchange="toggleFilter('topic','${esc(t)}')">${esc(t)}<span class="count">${n}</span></label>`).join('')||`<div style="font-size:11px;color:var(--text-3);padding:6px 0">${t('noData')}</div>`;
+  let e=Object.entries(c).sort((a,b)=>a[0].localeCompare(b[0]));
+  if(q)e=e.filter(([t])=>t.toLowerCase().includes(q));
+  const cap=100;
+  const isExpanded=expandedFilters.has('topic');
+  const visible=(isExpanded||q)?e:e.slice(0,cap);
+  const itemsHtml=visible.map(([topic,n])=>`<label class="sb-check-item"><input type="checkbox" ${selectedTopics.has(topic)?'checked':''} onchange="toggleFilter('topic','${esc(topic)}')">${esc(topic)}<span class="count">${n}</span></label>`).join('');
+  let toggleHtml='';
+  if(!q&&e.length>cap){
+    toggleHtml=isExpanded
+      ?`<button onclick="toggleFilterExpand('topic')" style="font-size:11px;color:var(--accent);background:none;border:none;padding:4px 0;cursor:pointer;width:100%;text-align:left">${t('collapse')} ▲</button>`
+      :`<button onclick="toggleFilterExpand('topic')" style="font-size:11px;color:var(--accent);background:none;border:none;padding:4px 0;cursor:pointer;width:100%;text-align:left">${t('showAll').replace('{n}',e.length)} ▼</button>`;
+  }
+  document.getElementById('topicList').innerHTML=
+    (itemsHtml+toggleHtml)||`<div style="font-size:11px;color:var(--text-3);padding:6px 0">${t('noData')}</div>`;
 }
 function renderJournalFilter(){
   const c={};works.forEach(w=>{if(w.source)c[w.source]=(c[w.source]||0)+1});
   const q=(document.getElementById('journalFilterSearch').value||'').toLowerCase();
-  let e=Object.entries(c).sort((a,b)=>a[0].localeCompare(b[0]));if(q)e=e.filter(([s])=>s.toLowerCase().includes(q));
-  document.getElementById('journalFilterList').innerHTML=e.map(([s,n])=>`<label class="sb-check-item"><input type="checkbox" ${selectedJournals.has(s)?'checked':''} onchange="toggleFilter('journal','${esc(s)}')">${esc(s)}<span class="count">${n}</span></label>`).join('')||`<div style="font-size:11px;color:var(--text-3);padding:6px 0">${t('noData')}</div>`;
+  let e=Object.entries(c).sort((a,b)=>a[0].localeCompare(b[0]));
+  if(q)e=e.filter(([s])=>s.toLowerCase().includes(q));
+  const cap=100;
+  const isExpanded=expandedFilters.has('journal');
+  const visible=(isExpanded||q)?e:e.slice(0,cap);
+  const itemsHtml=visible.map(([s,n])=>`<label class="sb-check-item"><input type="checkbox" ${selectedJournals.has(s)?'checked':''} onchange="toggleFilter('journal','${esc(s)}')">${esc(s)}<span class="count">${n}</span></label>`).join('');
+  let toggleHtml='';
+  if(!q&&e.length>cap){
+    toggleHtml=isExpanded
+      ?`<button onclick="toggleFilterExpand('journal')" style="font-size:11px;color:var(--accent);background:none;border:none;padding:4px 0;cursor:pointer;width:100%;text-align:left">${t('collapse')} ▲</button>`
+      :`<button onclick="toggleFilterExpand('journal')" style="font-size:11px;color:var(--accent);background:none;border:none;padding:4px 0;cursor:pointer;width:100%;text-align:left">${t('showAll').replace('{n}',e.length)} ▼</button>`;
+  }
+  document.getElementById('journalFilterList').innerHTML=
+    (itemsHtml+toggleHtml)||`<div style="font-size:11px;color:var(--text-3);padding:6px 0">${t('noData')}</div>`;
 }
 function renderAuthorFilter(){
   const c={};works.forEach(w=>w.authors.forEach(a=>{c[a]=(c[a]||0)+1}));
   const q=(document.getElementById('authorFilterSearch').value||'').toLowerCase();
-  let e=Object.entries(c).sort((a,b)=>a[0].localeCompare(b[0]));if(q)e=e.filter(([a])=>a.toLowerCase().includes(q));
-  document.getElementById('authorFilterList').innerHTML=e.slice(0,60).map(([a,n])=>`<label class="sb-check-item"><input type="checkbox" ${selectedAuthors.has(a)?'checked':''} onchange="toggleFilter('author','${esc(a)}')">${esc(a)}<span class="count">${n}</span></label>`).join('')||`<div style="font-size:11px;color:var(--text-3);padding:6px 0">${t('noData')}</div>`;
+  let e=Object.entries(c).sort((a,b)=>a[0].localeCompare(b[0]));
+  if(q)e=e.filter(([a])=>a.toLowerCase().includes(q));
+  // Show all when expanded or when a search narrows the list below the cap.
+  const cap=100;
+  const isExpanded=expandedFilters.has('author');
+  const visible=(isExpanded||q)?e:e.slice(0,cap);
+  const hidden=e.length-visible.length;
+  const itemsHtml=visible.map(([a,n])=>`<label class="sb-check-item"><input type="checkbox" ${selectedAuthors.has(a)?'checked':''} onchange="toggleFilter('author','${esc(a)}')">${esc(a)}<span class="count">${n}</span></label>`).join('');
+  let toggleHtml='';
+  if(!q&&e.length>cap){
+    toggleHtml=isExpanded
+      ?`<button onclick="toggleFilterExpand('author')" style="font-size:11px;color:var(--accent);background:none;border:none;padding:4px 0;cursor:pointer;width:100%;text-align:left">${t('collapse')} ▲</button>`
+      :`<button onclick="toggleFilterExpand('author')" style="font-size:11px;color:var(--accent);background:none;border:none;padding:4px 0;cursor:pointer;width:100%;text-align:left">${t('showAll').replace('{n}',e.length)} ▼</button>`;
+  }
+  document.getElementById('authorFilterList').innerHTML=
+    (itemsHtml+toggleHtml)||`<div style="font-size:11px;color:var(--text-3);padding:6px 0">${t('noData')}</div>`;
 }
 function renderGroupFilter(){
   const groups=[];
@@ -1170,6 +1211,14 @@ function clearJournalFilter(){selectedJournals.clear();renderJournalFilter();ren
 function clearAuthorFilter(){selectedAuthors.clear();renderAuthorFilter();renderWorks()}
 function clearGroupFilter(){selectedGroups.clear();renderGroupFilter();renderWorks()}
 function filterByTopic(t){switchTab('feed');selectedTopics.clear();selectedTopics.add(t);currentPage=1;renderAll()}
+
+function toggleFilterExpand(kind){
+  if(expandedFilters.has(kind))expandedFilters.delete(kind);
+  else expandedFilters.add(kind);
+  if(kind==='author')renderAuthorFilter();
+  else if(kind==='journal')renderJournalFilter();
+  else if(kind==='topic')renderTopicFilter();
+}
 
 // ════════════════════════════════════════════════════════════════
 // RENDER WORKS with PAGINATION
@@ -2190,7 +2239,7 @@ renderAll();renderScholarGroups();renderJournalGroups();
 // VERSION CHECK — show a banner when version.txt reports a newer version.
 // Bump APP_VERSION together with version.txt on every release.
 // ════════════════════════════════════════════════════════════════
-const APP_VERSION='1.2.0';
+const APP_VERSION='1.3.0';
 async function checkForUpdate(){
   try{
     // cache:'no-store' bypasses both the browser cache and any intermediate CDN cache
