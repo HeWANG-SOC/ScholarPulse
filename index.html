@@ -233,7 +233,7 @@ input,select{font-family:var(--font-b)}
 <div class="layout">
   <aside class="sidebar" id="sidebar">
     <div class="sb-section">
-      <div class="sb-label" data-i-label="kwSearch">关键词搜索</div>
+      <div class="sb-label"><span data-i-text="kwSearch">关键词搜索</span></div>
       <input class="sb-search" id="searchInput" placeholder="标题、作者、摘要、DOI..." oninput="renderWorks()">
     </div>
     <div class="sb-divider"></div>
@@ -422,8 +422,8 @@ input,select{font-family:var(--font-b)}
 // ════════════════════════════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════════════════════════════
-let scholarGroups = JSON.parse(localStorage.getItem('sp3_sgroups')||'[{"name":"默认","items":[]}]');
-let journalGroups = JSON.parse(localStorage.getItem('sp3_jgroups')||'[{"name":"默认","items":[]}]');
+let scholarGroups = JSON.parse(localStorage.getItem('sp3_sgroups')||'[{"name":"Default","items":[]}]');
+let journalGroups = JSON.parse(localStorage.getItem('sp3_jgroups')||'[{"name":"Default","items":[]}]');
 // Sanitize: remove null/undefined items that may have crept in from bugs
 scholarGroups.forEach(g=>{g.items=(g.items||[]).filter(i=>i&&i.name)});
 journalGroups.forEach(g=>{g.items=(g.items||[]).filter(i=>i&&i.name)});
@@ -1738,7 +1738,7 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('op
   if(localStorage.getItem('sp3_sgroups'))return;
   const oldS=JSON.parse(localStorage.getItem('sp_scholars')||'[]');const oldJ=JSON.parse(localStorage.getItem('sp_journals')||'[]');
   const oldW=JSON.parse(localStorage.getItem('sp_works')||'[]');const oldR=JSON.parse(localStorage.getItem('sp_read')||'[]');const oldSt=JSON.parse(localStorage.getItem('sp_star')||'[]');
-  if(oldS.length||oldJ.length){scholarGroups=[{name:'默认',items:oldS.map(s=>({...s,type:'openalex'}))}];journalGroups=[{name:'默认',items:oldJ.map(j=>({...j,type:j.type||'openalex'}))}];works=oldW;readSet=new Set(oldR);starSet=new Set(oldSt);save()}
+  if(oldS.length||oldJ.length){scholarGroups=[{name:'Default',items:oldS.map(s=>({...s,type:'openalex'}))}];journalGroups=[{name:'Default',items:oldJ.map(j=>({...j,type:j.type||'openalex'}))}];works=oldW;readSet=new Set(oldR);starSet=new Set(oldSt);save()}
 })();
 
 // ════════════════════════════════════════════════════════════════
@@ -2219,7 +2219,7 @@ function importDataFile(ev){
 function clearAllData(){
   if(!confirm(t('clearConfirm')))return;
   localStorage.removeItem('sp3_sgroups');localStorage.removeItem('sp3_jgroups');localStorage.removeItem('sp3_works');localStorage.removeItem('sp3_read');localStorage.removeItem('sp3_star');
-  scholarGroups=[{name:'默认',items:[]}];journalGroups=[{name:'默认',items:[]}];works=[];readSet=new Set();starSet=new Set();
+  scholarGroups=[{name:'Default',items:[]}];journalGroups=[{name:'Default',items:[]}];works=[];readSet=new Set();starSet=new Set();
   save();renderAll();renderScholarGroups();renderJournalGroups();toast('All data cleared');
 }
 
